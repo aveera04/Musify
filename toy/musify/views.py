@@ -23,14 +23,21 @@ def signup(request):
 
 def insuser(request):
     # Collect data
-    fn = request.GET['a1']
-    ln = request.GET['a2']
-    em = request.GET['a3']
-    ph = request.GET['a4']
-    db = request.GET['a5']
-    gd = request.GET['a6']
-    un = request.GET['a7']
-    pw = request.GET['a8']
+    if request.method == 'POST':
+        fn = request.POST.get('a1')
+        ln = request.POST.get('a2')
+        em = request.POST.get('a3')
+        ph = request.POST.get('a4')
+        db = request.POST.get('a5')
+        gd = request.POST.get('a6')
+        un = request.POST.get('a7')
+        pw = request.POST.get('a8')
+    else:
+        return render(request, 'register.html', {'error': 'Invalid request method'})
+
+    # Check if any entry is missing
+    if not all([fn, ln, em, ph, db, gd, un, pw]):
+        return render(request, 'register.html', {'error': 'Please fill all the entries properly'})
 
     # Check if a user with the same email already exists
     if user.objects.filter(email=em).exists():
@@ -58,14 +65,15 @@ def home(request):
     return render(request, 'home.html')
 
 def log_in(request):
-    a = request.GET['a1']
-    b = request.GET['a2']
-    if user.objects.filter(email=a, password=b):
-        return render(request, 'home.html')
-    elif user.objects.filter(username=a, password=b):
-        return render(request, 'home.html')
+    if request.method == 'POST':
+        a = request.POST.get('a1')
+        b = request.POST.get('a2')
+        if user.objects.filter(email=a, password=b).exists() or user.objects.filter(username=a, password=b).exists():
+            return render(request, 'home.html')
+        else:
+            return render(request, 'login.html', {'error': 'Invalid email/username or password'})
     else:
-        return render(request, 'login.html', {'error': 'Something went wrong'})
+        return render(request, 'login.html', {'error': 'Invalid request method'})
 
 def up_music(request):
     return render(request, 'up_music.html')

@@ -46,7 +46,8 @@
         </div>
       </div>
       <div class="form-outer">
-        <form action="insuser">
+        <form action="insuser" method="post">
+          {% csrf_token %}
           <div class="page slide-page">
             <div class="title">Basic Info:</div>
             <div class="field">
@@ -87,9 +88,9 @@
             <div class="field">
               <div class="label">Gender</div>
               <select name="a6">
-              <option>Male</option>
-              <option>Female</option>
-              <option>Other</option>
+                <option>Male</option>
+                <option>Female</option>
+                <option>Other</option>
               </select>
             </div>
             <div class="field btns">
@@ -107,17 +108,24 @@
             <div class="field">
               <div class="label">Password</div>
               <input type="password" name="a8">
-              
             </div>
             <div class="field btns">
               <button class="prev-3 prev">Previous</button>
               <button class="submit">Submit</button>
             </div>
           </div>
+          {% if error %}
+          <script>
+            alert("{{ error }}");
+          </script>
+          {% endif %}
         </form>
       </div>
+      <!-- Added login link at the bottom of the container -->
+      <div class="member-link" style="text-align: center; margin-top: 15px;">
+        <a href="login" style="color: #1e5cd7; text-decoration: none;">Already a member?</a>
+      </div>
     </div>
-    <script src="{% static 'js/register_script.js' %} "></script>
-
+    <script src="{% static 'js/register_script.js' %}"></script>
   </body>
 </html>

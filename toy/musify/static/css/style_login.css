@@ -90,7 +90,7 @@ form .button{
   left: -100%;
   z-index: -1;
   transition: all .4s;
-  background: -webkit-linear-gradient(right,#00dbde,#fc00ff,#00dbde,#fc00ff);
+  background: #1ED760
 }
 .button:hover .inner{
   left: 0;
