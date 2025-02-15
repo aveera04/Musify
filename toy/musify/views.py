@@ -40,18 +40,18 @@ def insuser(request):
         return render(request, 'register.html', {'error': 'Please fill all the entries properly'})
 
     # Check if a user with the same email already exists
-    if user.objects.filter(email=em).exists():
+    if User.objects.filter(email=em).exists():
         return render(request, 'register.html', {'error': 'Email already exists'})
-    # Optionally, also check for existing username, etc.
-    if user.objects.filter(username=un).exists():
+    # Optionally, also check for existing Username, etc.
+    if User.objects.filter(username=un).exists():
         return render(request, 'register.html', {'error': 'Username already exists'})
 
     # Create and save the new user if there are no conflicts
-    new_user = user()
-    new_user.fnmae = fn
+    new_user = User()
+    new_user.fname = fn
     new_user.lname = ln
     new_user.email = em
-    new_user.ph = ph
+    new_user.phone = ph
     new_user.dob = db
     new_user.gender = gd
     new_user.username = un
@@ -71,9 +71,9 @@ def log_in(request):
     if request.method == 'POST':
         a = request.POST.get('a1')
         b = request.POST.get('a2')
-        if user.objects.filter(email=a, password=b).exists() or user.objects.filter(username=a, password=b).exists():
+        if User.objects.filter(email=a, password=b).exists() or User.objects.filter(username=a, password=b).exists():
             # this is the session check
-            u = user.objects.filter(email=a).first() or user.objects.filter(username=a).first()
+            u = User.objects.filter(email=a).first() or User.objects.filter(username=a).first()
             request.session['email'] = u.email
             request.session['username'] = u.username
             return redirect('./home')

@@ -76,8 +76,13 @@ WSGI_APPLICATION = 'toy.wsgi.application'
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+        'ENGINE': 'djongo',
+        'NAME': 'musify',
+        'CLIENT': {
+            'host': 'mongodb+srv://shantanur502:RDdJjBr8eSvdn7tu@musify.fil51.mongodb.net/?retryWrites=true&w=majority&appName=Musify',
+            'tls': True,
+            'ssl': True,
+        }
     }
 }
 
