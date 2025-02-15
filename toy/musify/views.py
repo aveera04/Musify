@@ -62,6 +62,9 @@ def insuser(request):
     return redirect('./login')
 
 def home(request):
+    # Check if the user is logged in
+    if 'email' not in request.session  or 'username' not in request.session:
+        return render(request, 'login.html', {'error': 'You are not logged in. Please log in first.'})
     return render(request, 'home.html')
 
 def log_in(request):
@@ -69,12 +72,15 @@ def log_in(request):
         a = request.POST.get('a1')
         b = request.POST.get('a2')
         if user.objects.filter(email=a, password=b).exists() or user.objects.filter(username=a, password=b).exists():
-            return render(request, 'home.html')
+            # this is the session check
+            u = user.objects.filter(email=a).first() or user.objects.filter(username=a).first()
+            request.session['email'] = u.email
+            request.session['username'] = u.username
+            return redirect('./home')
         else:
             return render(request, 'login.html', {'error': 'Invalid email/username or password'})
     else:
         return render(request, 'login.html', {'error': 'Invalid request method'})
-
 def up_music(request):
     return render(request, 'up_music.html')
 

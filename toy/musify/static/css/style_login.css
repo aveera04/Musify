@@ -90,10 +90,11 @@ form .button{
   left: -100%;
   z-index: -1;
   transition: all .4s;
-  background: #1ED760
+  background: #1ED760;
 }
 .button:hover .inner{
   left: 0;
+  
 }
 .button button{
   width: 100%;
@@ -109,7 +110,7 @@ form .button{
 .container .auth{
   margin: 35px 0 20px 0;
   font-size: 19px;
-  color: grey;
+  color: black;
 }
 .links{
   display: flex;
@@ -122,12 +123,15 @@ form .button{
   border-radius: 3px;
   margin: 0 10px;
   transition: .4s;
+  background-color: white;
 }
 .facebook:hover{
-  border: 1px solid #4267B2;
+  border: 1px solid black;
+  background: #1ED760;
 }
 .google:hover{
-  border: 1px solid #dd4b39;
+  border: 1px solid black;
+  background: #1ED760;
 }
 .facebook i, .facebook span{
   color: #4267B2;

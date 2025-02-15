@@ -3,10 +3,10 @@ from django.db import models
 # Create your models here.
 #    
 class user(models.Model):
-    fnmae = models.CharField(max_length=100)
+    fname = models.CharField(max_length=100)
     lname = models.CharField(max_length=100)
     email = models.EmailField()
-    ph= models.IntegerField()
+    phone= models.IntegerField()
     dob = models.DateField()
     gender = models.CharField(max_length=10)
     username = models.CharField(max_length=100)
