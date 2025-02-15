@@ -23,12 +23,13 @@ body{
   background:#9AD1EA;
   text-align: center;
   border-radius: 5px;
-  padding: 50px 35px 10px 35px;
+  padding: 30px 35px 10px 35px; /* Reduced top padding */
+  margin-top: -20px; /* Shift container upwards */
 }
 .container header{
   font-size: 35px;
   font-weight: 600;
-  margin: 0 0 30px 0;
+  margin: 0 0 20px 0; /* Reduced bottom margin */
 }
 .container .form-outer{
   width: 100%;
@@ -50,13 +51,13 @@ body{
 .form-outer form .page .field{
   width: 330px;
   height: 45px;
-  margin: 45px 0;
+  margin: 30px 0; /* Reduced vertical margin */
   display: flex;
   position: relative;
 }
 form .page .field .label{
   position: absolute;
-  top: -30px;
+  top: -28px;
   font-weight: 500;
 }
 form .page .field input{
@@ -78,7 +79,7 @@ form .page .field button{
   height: calc(100% + 5px);
   border: none;
   background: #1ED760;
-  margin-top: -20px;
+  margin-top: 10px; /* Slightly move down */
   border-radius: 5px;
   color: #fff;
   cursor: pointer;
@@ -92,7 +93,7 @@ form .page .field button:hover{
   background: #000;
 }
 form .page .btns button{
-  margin-top: -20px!important;
+  margin-top: 10px!important; /* Slightly move down */
 }
 form .page .btns button.prev{
   margin-right: 3px;
@@ -103,7 +104,7 @@ form .page .btns button.next{
 }
 .container .progress-bar{
   display: flex;
-  margin: 40px 0;
+  margin: 20px 0; /* Reduced vertical margin */
   user-select: none;
 }
 .container .progress-bar .step{
@@ -181,4 +182,48 @@ form .page .btns button.next{
 .progress-bar .step .check.active{
   display: block;
   color: #fff;
+}
+.container .auth{
+  margin: 35px 0 20px 0;
+  font-size: 19px;
+  color: black;
+}
+.links{
+  display: flex;
+  cursor: pointer;
+}
+.facebook, .google{
+  height: 40px;
+  width: 100%;
+  border: 1px solid silver;
+  border-radius: 3px;
+  margin: 0 10px;
+  transition: .4s;
+  background-color: white;
+}
+.facebook:hover{
+  border: 1px solid black;
+  background: #1ED760;
+}
+.google:hover{
+  border: 1px solid black;
+  background: #1ED760;
+}
+.facebook i, .facebook span{
+  color: #4267B2;
+}
+.google i, .google span{
+  color: #dd4b39;
+}
+.links i{
+  font-size: 23px;
+  line-height: 40px;
+  margin-left: -90px;
+}
+.links span{
+  position: absolute;
+  font-size: 17px;
+  font-weight: bold;
+  padding-left: 8px;
+  font-family: 'Open Sans', sans-serif;
 }

@@ -5,6 +5,8 @@
     <meta charset="utf-8">
     <title>Musify Signup Form</title>
     <link rel="stylesheet" href="{% static 'css/register_style.css' %}">
+    
+    
     <script src="https://kit.fontawesome.com/a076d05399.js"></script>
   </head>
   <body>
@@ -82,7 +84,7 @@
           <div class="page">
             <div class="title">Date of Birth:</div>
             <div class="field">
-              <div class="label">Date (YYYY-MM-DD)</div>
+              <div class="label">Date </div>
               <input type="date" name="a5" pattern="\d{4}-\d{2}-\d{2}">
             </div>
             <div class="field">
@@ -113,13 +115,23 @@
               <button class="prev-3 prev">Previous</button>
               <button class="submit">Submit</button>
             </div>
-          </div>
+            
           {% if error %}
           <script>
             alert("{{ error }}");
           </script>
           {% endif %}
         </form>
+        
+      </div>
+      <div class="auth">Or login with</div>
+        <div class="links">
+          <div class="facebook">
+            <i class="fab fa-facebook-square"><span>Facebook</span></i>
+          </div>
+        <div class="google">
+          <i class="fab fa-google-plus-square"><span>Google</span></i>
+        </div>
       </div>
       <!-- Added login link at the bottom of the container -->
       <div class="member-link" style="text-align: center; margin-top: 15px;">

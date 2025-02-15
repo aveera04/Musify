@@ -302,6 +302,44 @@
         .time-info {
             font-size: 14px;
         }
+
+        .profile-popup {
+            position: absolute;
+            right: 20px;
+            top: 60px;
+            background: #1a2922;
+            padding: 16px 20px;
+            border-radius: 10px;
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.4);
+            transition: opacity 0.3s ease, transform 0.3s ease;
+            opacity: 1;
+            z-index: 1000;
+        }
+        .profile-popup p {
+            margin-bottom: 8px;
+            font-weight: bold;
+            color: #fff;
+        }
+        .profile-popup ul {
+            list-style: none;
+            margin: 0;
+            padding: 0;
+        }
+        .profile-popup ul li {
+            margin-bottom: 10px;
+        }
+        .profile-popup ul li a {
+            color: #1ed760;
+            text-decoration: none;
+            padding: 6px 8px;
+            border-radius: 6px;
+            transition: background-color 0.2s, color 0.2s;
+            display: inline-block;
+        }
+        .profile-popup ul li a:hover {
+            background-color: #2a3932;
+            color: #fff;
+        }
     </style>
 </head>
 <body>
@@ -336,13 +374,14 @@
             </div>
             <button class="expand-btn" onclick="addPlaylist()">+</button>
         </div>
+        
     </aside>
     <main class="main-content">
         <header class="header">
             <input type="search" class="search-bar" placeholder="Search songs, artists, or albums">
             <div class="header-right">
                 <button class="notification-btn">🔔</button>
-                <button class="profile-btn">
+                <button class="profile-btn" onclick="toggleProfilePopup()">
                     <img src="{% static 'images/profile.png' %}" alt="Profile" style="width: 30px; height: 30px; border-radius: 50%;">
                 </button>
             </div>
@@ -354,6 +393,20 @@
             </div>
         </section>
     </main>
+
+    <!-- Profile Popup -->
+    <div class="profile-popup hidden" id="profilePopup">
+      <ul>
+        <li><a href="#">View Profile</a></li>
+        <li><a href="#">Settings</a></li>
+        <li>
+          <!-- Link to your logout route; adjust as needed in urls.py -->
+          <a href="logout" onclick="event.preventDefault(); confirmLogout();">
+            Logout
+          </a>
+        </li>
+      </ul>
+    </div>
 
     <div class="music-player" id="music-player">
         <div class="song-info">
@@ -558,6 +611,19 @@
                 playSong(name, artist);
             });
         });
+
+        // Toggles the popup's visibility
+        function toggleProfilePopup() {
+            const popup = document.getElementById('profilePopup');
+            popup.classList.toggle('hidden');
+        }
+
+        // Confirms logout before redirecting
+        function confirmLogout() {
+            if (confirm("Are you sure you want to logout?")) {
+                window.location.href = "login";
+            }
+        }
     </script>
 </body>
 </html>
