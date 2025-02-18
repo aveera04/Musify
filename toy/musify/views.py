@@ -1,9 +1,16 @@
 import os
+import logging
 from django.shortcuts import render, redirect
 from django.http import HttpResponse
 from django.conf import settings
 from musify.models import *
+from .google_drive import upload_to_drive
+from dotenv import load_dotenv
 
+# Configure logger
+logger = logging.getLogger(__name__)
+logging.basicConfig(level=logging.INFO)
+load_dotenv()
 # Create your views here.
 
 def test(request):
@@ -86,35 +93,142 @@ def up_music(request):
 
 def upload_music(request):
     if request.method == 'POST':
-        song_name = request.POST.get('songName')
-        artist_name = request.POST.get('artistName')
-        album_name = request.POST.get('albumName')
-        album_cover = request.FILES.get('albumCover')
-        song_file = request.FILES.get('songFile')
+        try:
+            # Get form data
+            song_name = request.POST.get('songName')
+            artist_name = request.POST.get('artistName')
+            album_name = request.POST.get('albumName')
 
-        if album_cover:
-            handle_uploaded_file(album_cover, album_cover.name)
-        if song_file:
-            handle_uploaded_file(song_file, song_file.name)
+            # Validate form data
+            if not all([song_name, artist_name, album_name]):
+                return render(request, 'up_music.html', 
+                    {'error': 'Please fill in all fields'})
 
-        # Save the song details to the database or perform other actions as needed
-        # For example:
-        # Song.objects.create(
-        #     name=song_name,
-        #     artist=artist_name,
-        #     album=album_name,
-        #     cover=album_cover.name,
-        #     file=song_file.name
-        # )
+            # Get files
+            album_cover = request.FILES.get('albumCover')
+            song_file = request.FILES.get('songFile')
 
-        return HttpResponse('Song uploaded successfully!')
+            album_cover_folder_id = os.getenv("ALBUM_COVER_FOLDER_ID")
+            if not album_cover or not song_file:
+                return render(request, 'up_music.html', 
+                    {'error': 'Please select both album cover and song file'})
+
+            # Verify file types
+            if not album_cover.content_type.startswith('image/'):
+                return render(request, 'up_music.html', 
+                    {'error': 'Please upload a valid image file for album cover'})
+
+            if not song_file.content_type.startswith('audio/'):
+                return render(request, 'up_music.html', 
+                    {'error': 'Please upload a valid audio file'})
+
+            # Upload cover
+            
+            
+            album_cover_id = upload_to_drive(album_cover, 
+                                           f"cover_{song_name}{os.path.splitext(album_cover.name)[1]}", 
+                                           album_cover_folder_id)
+            
+            if not album_cover_id:
+                return render(request, 'up_music.html', 
+                    {'error': 'Failed to upload album cover'})
+
+            # Upload song
+            song_file_folder_id = os.getenv("SONG_FILE_FOLDER_ID")
+            song_file_id = upload_to_drive(song_file, 
+                                         f"{song_name}{os.path.splitext(song_file.name)[1]}", 
+                                         song_file_folder_id)
+            
+            if not song_file_id:
+                return render(request, 'up_music.html', 
+                    {'error': 'Failed to upload song file'})
+
+            # Create URLs
+            album_cover_url = f"https://drive.google.com/uc?id={album_cover_folder_id}"
+            song_file_url = f"https://drive.google.com/uc?id={song_file_folder_id}"
+
+            # Save to database
+            new_music = Music(
+                title=song_name,
+                artist=artist_name,
+                album=album_name,
+                cover=album_cover_url,
+                song=song_file_url
+            )
+            new_music.save()
+
+            return HttpResponse('Song uploaded and saved successfully!')
+
+        except Exception as e:
+            return render(request, 'up_music.html', 
+                {'error': f'An error occurred: {str(e)}'})
 
     return render(request, 'up_music.html')
 
-def handle_uploaded_file(file, filename):
-    upload_path = os.path.join(settings.MEDIA_ROOT, 'uploads')
+def handle_uploaded_file(file, filename, upload_path):
+    # Create the upload directory if it doesn't exist
     if not os.path.exists(upload_path):
         os.makedirs(upload_path)
-    with open(os.path.join(upload_path, filename), 'wb+') as destination:
+    with open(upload_path + filename, 'wb+') as destination:
         for chunk in file.chunks():
             destination.write(chunk)
+
+# def test_drive_connection(request):
+#     try:
+#         from .google_drive import service
+        
+#         # Test basic API connection first
+#         about = service.about().get(fields="user,storageQuota").execute()
+#         logger.info(f"Connected as: {about['user']['emailAddress']}")
+        
+#         # Test folder access with error handling
+#         album_cover_folder_id = os.getenv("ALBUM_COVER_FOLDER_ID")
+#         song_file_folder_id = os.getenv("SONG_FILE_FOLDER_ID")
+        
+#         # List all accessible files/folders to debug permissions
+#         results = service.files().list(
+#             pageSize=10,
+#             fields="files(id, name, mimeType, capabilities)",
+#             q="'me' in owners"
+#         ).execute()
+        
+#         accessible_items = results.get('files', [])
+#         logger.info(f"Found {len(accessible_items)} accessible items")
+        
+#         # Test specific folder access
+#         try:
+#             folder1 = service.files().get(
+#                 fileId=album_cover_folder_id,
+#                 fields="name,id,capabilities,owners,permissions"
+#             ).execute()
+#             logger.info(f"Album cover folder details: {folder1}")
+#         except Exception as e:
+#             error_details = str(e)
+#             logger.error(f"Album cover folder error: {error_details}")
+#             return HttpResponse(
+#                 f"<pre>Cannot access album cover folder.\n\n"
+#                 f"Service Account Email: {about['user']['emailAddress']}\n"
+#                 f"Error Details: {error_details}\n\n"
+#                 f"Accessible Items: {len(accessible_items)}\n"
+#                 f"{''.join([f'- {item['name']} ({item['id']})\n' for item in accessible_items])}\n"
+#                 f"Please ensure:\n"
+#                 f"1. Folder ID is correct\n"
+#                 f"2. Service account has Editor access\n"
+#                 f"3. Folder is shared with {about['user']['emailAddress']}</pre>"
+#             )
+        
+#         return HttpResponse(
+#             f"<pre>Connection successful!\n\n"
+#             f"Service Account: {about['user']['emailAddress']}\n"
+#             f"Storage Used: {about['storageQuota'].get('usageInDrive', 0)} bytes\n\n"
+#             f"Album Cover Folder:\n"
+#             f"- Name: {folder1['name']}\n"
+#             f"- ID: {folder1['id']}\n"
+#             f"- Can Edit: {folder1['capabilities'].get('canEdit', False)}\n"
+#             f"- Owners: {', '.join([owner['emailAddress'] for owner in folder1.get('owners', [])])}</pre>"
+#         )
+    
+#     except Exception as e:
+#         logger.error(f"Connection test failed: {str(e)}")
+#         return HttpResponse(f"<pre>Connection failed: {str(e)}</pre>")
+

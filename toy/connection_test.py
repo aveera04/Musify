@@ -1,9 +1,14 @@
 # filepath: /workspaces/Musify/toy/connection_test.py
 from pymongo import MongoClient
 import ssl
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
+
 
 # Replace <db_password> with your actual password.
-connection_string = "mongodb+srv://shantanur502:RDdJjBr8eSvdn7tu@musify.fil51.mongodb.net/?retryWrites=true&w=majority&appName=Musify"
+connection_string = os.getenv("MONGODB_URI")
 
 try:
     client = MongoClient(connection_string, tls=True, ssl_cert_reqs=ssl.CERT_REQUIRED)

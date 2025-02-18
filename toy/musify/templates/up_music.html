@@ -1,3 +1,4 @@
+{% load static %}
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -108,32 +109,32 @@
         <form id="uploadForm" action="upload_music" method="post" enctype="multipart/form-data">
             {% csrf_token %}
             <div class="album-preview">
-                <img id="albumPreview" src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/IMG-20250211-WA0011.jpg-kOLAKB5NQjQwoOzbg7lGEnc1Xk5W4I.jpeg" alt="Album Preview">
+                <img id="albumPreview" src="{% static 'images/logo.png' %}" alt="Album Preview">
             </div>
             
             <div class="form-group">
                 <label for="albumCover">Album Cover</label>
-                <input type="file" id="albumCover" accept="image/*" required>
+                <input type="file" id="albumCover" name="albumCover" accept="image/*" required>
             </div>
 
             <div class="form-group">
                 <label for="songName">Song Name</label>
-                <input type="text" id="songName" required>
+                <input type="text" name="songName" id="songName" required>
             </div>
 
             <div class="form-group">
                 <label for="artistName">Artist Name</label>
-                <input type="text" id="artistName" required>
+                <input type="text" id="artistName" name="artistName" required>
             </div>
 
             <div class="form-group">
                 <label for="albumName">Album Name</label>
-                <input type="text" id="albumName" required>
+                <input type="text" id="albumName" name="albumName" required>
             </div>
 
             <div class="form-group">
                 <label for="songFile">Song File</label>
-                <input type="file" id="songFile" accept="audio/*" required>
+                <input type="file" id="songFile"  name="songFile" accept="audio/*" required>
             </div>
 
             <button type="submit">Upload Song</button>
@@ -152,23 +153,23 @@
             }
         });
 
-        document.getElementById('uploadForm').addEventListener('submit', function(e) {
-            e.preventDefault();
+        // document.getElementById('uploadForm').addEventListener('submit', function(e) {
+        //     e.preventDefault();
             
-            const formData = {
-                songName: document.getElementById('songName').value,
-                artistName: document.getElementById('artistName').value,
-                albumName: document.getElementById('albumName').value,
-                albumCover: document.getElementById('albumCover').files[0]?.name || 'No file selected',
-                songFile: document.getElementById('songFile').files[0]?.name || 'No file selected'
-            };
+        //     const formData = {
+        //         songName: document.getElementById('songName').value,
+        //         artistName: document.getElementById('artistName').value,
+        //         albumName: document.getElementById('albumName').value,
+        //         albumCover: document.getElementById('albumCover').files[0]?.name || 'No file selected',
+        //         songFile: document.getElementById('songFile').files[0]?.name || 'No file selected'
+        //     };
 
-            // Log the form data (in a real application, you would send this to a server)
-            console.log('Form submitted with data:', formData);
-            alert('Song uploaded successfully!');
-            this.reset();
-            document.getElementById('albumPreview').src = 'https://hebbkx1anhila5yf.public.blob.vercel-storage.com/IMG-20250211-WA0011.jpg-kOLAKB5NQjQwoOzbg7lGEnc1Xk5W4I.jpeg';
-        });
+        //     // Log the form data (in a real application, you would send this to a server)
+        //     console.log('Form submitted with data:', formData);
+        //     alert('Song uploaded successfully!');
+        //     this.reset();
+        //     document.getElementById('albumPreview').src = 'https://hebbkx1anhila5yf.public.blob.vercel-storage.com/IMG-20250211-WA0011.jpg-kOLAKB5NQjQwoOzbg7lGEnc1Xk5W4I.jpeg';
+        // });
     </script>
 </body>
 </html>

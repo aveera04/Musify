@@ -10,17 +10,26 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.1/ref/settings/
 """
 
+import os
 from pathlib import Path
+from dotenv import load_dotenv
+
+# Load environment variables
+load_dotenv()
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
+
+# Add these after your BASE_DIR definition
+ALBUM_COVER_FOLDER_ID = os.getenv('ALBUM_COVER_FOLDER_ID')
+SONG_FILE_FOLDER_ID = os.getenv('SONG_FILE_FOLDER_ID')
 
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.1/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure--%%+2(qgse*n6c4*g6opwyw%g3br_#z0st(0-d!tqm(9%r)j4^'
+SECRET_KEY = os.getenv('DJANGO_SECRET_KEY')
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
@@ -79,7 +88,7 @@ DATABASES = {
         'ENGINE': 'djongo',
         'NAME': 'musify',
         'CLIENT': {
-            'host': 'mongodb+srv://shantanur502:RDdJjBr8eSvdn7tu@musify.fil51.mongodb.net/?retryWrites=true&w=majority&appName=Musify',
+            'host': os.getenv("MONGODB_URI"),
             'tls': True,
             'ssl': True,
         }
