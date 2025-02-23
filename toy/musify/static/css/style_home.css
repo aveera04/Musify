@@ -612,3 +612,18 @@ body {
 .music-player.minimized .current-song-cover:hover {
     transform: scale(1.1);
 }
+
+.error-message, .no-songs-message {
+    color: #ff4444;
+    text-align: center;
+    padding: 20px;
+    background: rgba(255, 0, 0, 0.1);
+    border-radius: 8px;
+    width: 100%;
+    grid-column: 1 / -1;
+}
+
+.no-songs-message {
+    color: #ffffff;
+    background: rgba(255, 255, 255, 0.1);
+}

@@ -1,10 +1,10 @@
 import os
 import logging
 from django.shortcuts import render, redirect
-from django.http import HttpResponse
+from django.http import HttpResponse, JsonResponse
 from django.conf import settings
 from musify.models import *
-from .google_drive import upload_to_drive
+from .google_drive import upload_to_drive, get_file_url
 from dotenv import load_dotenv
 
 # Configure logger
@@ -118,9 +118,10 @@ def upload_music(request):
                 return render(request, 'up_music.html', 
                     {'error': 'Please upload a valid image file for album cover'})
 
-            if not song_file.content_type.startswith('audio/'):
+            allowed_audio_types = ['audio/mpeg', 'audio/mp3']
+            if song_file.content_type not in allowed_audio_types:
                 return render(request, 'up_music.html', 
-                    {'error': 'Please upload a valid audio file'})
+                    {'error': 'Please upload an MP3 file'})
 
             # Upload cover
             
@@ -152,8 +153,8 @@ def upload_music(request):
                 title=song_name,
                 artist=artist_name,
                 album=album_name,
-                cover=album_cover_url,
-                song=song_file_url
+                cover=album_cover_id,
+                song=song_file_id
             )
             new_music.save()
 
@@ -173,62 +174,55 @@ def handle_uploaded_file(file, filename, upload_path):
         for chunk in file.chunks():
             destination.write(chunk)
 
-# def test_drive_connection(request):
-#     try:
-#         from .google_drive import service
+def get_songs(request):
+    try:
+        songs = Music.objects.all()
+        logger.info(f"Found {songs.count()} songs in database")
+        songs_list = []
         
-#         # Test basic API connection first
-#         about = service.about().get(fields="user,storageQuota").execute()
-#         logger.info(f"Connected as: {about['user']['emailAddress']}")
+        for song in songs:
+            try:
+                cover_url = get_file_url(song.cover, is_audio=False)
+                song_url = get_file_url(song.song, is_audio=True)
+                
+                logger.info(f"Processing {song.title}")
+                logger.info(f"Cover URL: {cover_url}")
+                logger.info(f"Song URL: {song_url}")
+                
+                if cover_url and song_url:
+                    songs_list.append({
+                        'name': song.title,
+                        'artist': song.artist,
+                        'cover': cover_url,
+                        'source': song_url,
+                        'album': song.album
+                    })
+                    logger.info(f"Successfully added {song.title}")
+                else:
+                    logger.error(f"Failed to get URLs for {song.title}")
+                    
+            except Exception as e:
+                logger.error(f"Error processing song {song.title}: {str(e)}")
+                continue
         
-#         # Test folder access with error handling
-#         album_cover_folder_id = os.getenv("ALBUM_COVER_FOLDER_ID")
-#         song_file_folder_id = os.getenv("SONG_FILE_FOLDER_ID")
+        return JsonResponse({'songs': songs_list})
         
-#         # List all accessible files/folders to debug permissions
-#         results = service.files().list(
-#             pageSize=10,
-#             fields="files(id, name, mimeType, capabilities)",
-#             q="'me' in owners"
-#         ).execute()
-        
-#         accessible_items = results.get('files', [])
-#         logger.info(f"Found {len(accessible_items)} accessible items")
-        
-#         # Test specific folder access
-#         try:
-#             folder1 = service.files().get(
-#                 fileId=album_cover_folder_id,
-#                 fields="name,id,capabilities,owners,permissions"
-#             ).execute()
-#             logger.info(f"Album cover folder details: {folder1}")
-#         except Exception as e:
-#             error_details = str(e)
-#             logger.error(f"Album cover folder error: {error_details}")
-#             return HttpResponse(
-#                 f"<pre>Cannot access album cover folder.\n\n"
-#                 f"Service Account Email: {about['user']['emailAddress']}\n"
-#                 f"Error Details: {error_details}\n\n"
-#                 f"Accessible Items: {len(accessible_items)}\n"
-#                 f"{''.join([f'- {item['name']} ({item['id']})\n' for item in accessible_items])}\n"
-#                 f"Please ensure:\n"
-#                 f"1. Folder ID is correct\n"
-#                 f"2. Service account has Editor access\n"
-#                 f"3. Folder is shared with {about['user']['emailAddress']}</pre>"
-#             )
-        
-#         return HttpResponse(
-#             f"<pre>Connection successful!\n\n"
-#             f"Service Account: {about['user']['emailAddress']}\n"
-#             f"Storage Used: {about['storageQuota'].get('usageInDrive', 0)} bytes\n\n"
-#             f"Album Cover Folder:\n"
-#             f"- Name: {folder1['name']}\n"
-#             f"- ID: {folder1['id']}\n"
-#             f"- Can Edit: {folder1['capabilities'].get('canEdit', False)}\n"
-#             f"- Owners: {', '.join([owner['emailAddress'] for owner in folder1.get('owners', [])])}</pre>"
-#         )
-    
-#     except Exception as e:
-#         logger.error(f"Connection test failed: {str(e)}")
-#         return HttpResponse(f"<pre>Connection failed: {str(e)}</pre>")
+    except Exception as e:
+        logger.error(f"Error in get_songs view: {str(e)}")
+        return JsonResponse({'error': str(e)}, status=500)
+
+def test_drive_connection(request):
+    try:
+        from .google_drive import service
+        about = service.about().get(fields="user,storageQuota").execute()
+        return JsonResponse({
+            'status': 'success',
+            'user': about['user']['emailAddress'],
+            'quota': about['storageQuota']
+        })
+    except Exception as e:
+        return JsonResponse({
+            'status': 'error',
+            'message': str(e)
+        }, status=500)
 

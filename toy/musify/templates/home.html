@@ -135,6 +135,51 @@
 </div>
 
     <script>
+        // Initialize audio player first
+        const audioPlayer = document.getElementById('audio-player');
+        const songProgress = document.getElementById('song-progress');
+        const currentTimeElem = document.getElementById('current-time');
+        const totalTimeElem = document.getElementById('total-time');
+        let currentSongIndex = 0;
+        let songs = [];
+
+        // Add audio player event listeners
+        audioPlayer.addEventListener('error', (e) => {
+            console.error('Audio player error:', e.target.error);
+            alert('Error playing audio. Please try refreshing the page.');
+        });
+
+        audioPlayer.addEventListener('loadstart', () => {
+            console.log('Started loading audio');
+        });
+
+        audioPlayer.addEventListener('canplay', () => {
+            console.log('Audio can start playing');
+        });
+
+        // Add this after audioPlayer initialization
+        audioPlayer.addEventListener('error', (e) => {
+            console.error('Audio player error:', e.target.error);
+            if (e.target.error.code === 4) {
+                console.error('Format not supported');
+                alert('This audio format is not supported by your browser. Try converting to MP3.');
+            } else {
+                alert('Error playing audio. Please try refreshing the page.');
+            }
+        });
+
+        audioPlayer.addEventListener('loadeddata', () => {
+            console.log('Audio data loaded successfully');
+        });
+
+        audioPlayer.addEventListener('stalled', () => {
+            console.log('Audio download has stalled');
+        });
+
+        audioPlayer.addEventListener('waiting', () => {
+            console.log('Audio is waiting for data');
+        });
+
         // Navigation handling
         document.querySelectorAll('.nav-item').forEach(item => {
             item.addEventListener('click', (e) => {
@@ -198,37 +243,40 @@
         }
 
         // Music player functionality
-        let currentSongIndex = 0;
-        let songs = [];
-
-        async function loadSongsFromCSV() {
+        // Update the loadSongsFromDatabase function
+        async function loadSongsFromDatabase() {
             try {
-                const response = await fetch('{% static "csv/songs.csv" %}');
+                const response = await fetch('/musify/get_songs');
+                console.log('Response status:', response.status);
+                
                 if (!response.ok) {
                     throw new Error(`HTTP error! status: ${response.status}`);
                 }
-                const csvText = await response.text();
                 
-                // Parse CSV
-                const lines = csvText.split('\n');
-                const headers = lines[0].split(',');
+                const data = await response.json();
+                console.log('Received data:', data);
                 
-                songs = lines.slice(1).filter(line => line.trim()).map(line => {
-                    const values = line.split(',');
-                    return {
-                        name: values[0],
-                        artist: values[1],
-                        cover: values[2],
-                        source: values[3]
-                    };
-                });
-
-                // After loading songs, populate the grid
+                if (data.error) {
+                    console.error('Server error:', data.error);
+                    const songsGrid = document.getElementById('songs-grid');
+                    songsGrid.innerHTML = `<p class="error-message">Error: ${data.error}</p>`;
+                    return;
+                }
+                
+                if (!data.songs || data.songs.length === 0) {
+                    const songsGrid = document.getElementById('songs-grid');
+                    songsGrid.innerHTML = '<p class="no-songs-message">No songs available</p>';
+                    return;
+                }
+                
+                songs = data.songs;
+                console.log('Songs loaded:', songs);
                 populateSongsGrid();
                 
-                console.log('Songs loaded:', songs);
             } catch (error) {
                 console.error('Error loading songs:', error);
+                const songsGrid = document.getElementById('songs-grid');
+                songsGrid.innerHTML = `<p class="error-message">Error loading songs: ${error.message}</p>`;
             }
         }
 
@@ -250,22 +298,53 @@
         }
 
         // Load songs when the document is ready
-        document.addEventListener('DOMContentLoaded', loadSongsFromCSV);
+        document.addEventListener('DOMContentLoaded', loadSongsFromDatabase);
 
-        const audioPlayer = document.getElementById('audio-player');
-        const songProgress = document.getElementById('song-progress');
-        const currentTimeElem = document.getElementById('current-time');
-        const totalTimeElem = document.getElementById('total-time');
-
+        // const audioPlayer = document.getElementById('audio-player');
+        // Add error handling to playSong function
         function playSong(name, artist) {
-            const songIndex = songs.findIndex(song => song.name === name && song.artist === artist);
-            if (songIndex !== -1) {
-                currentSongIndex = songIndex;
-                updateMusicPlayer();
-                document.getElementById('music-player').classList.add('active');
-                audioPlayer.play();
+            try {
+                const songIndex = songs.findIndex(song => song.name === name && song.artist === artist);
+                if (songIndex !== -1) {
+                    currentSongIndex = songIndex;
+                    const song = songs[currentSongIndex];
+                    
+                    // Update player UI
+                    document.getElementById('current-song-title').textContent = song.name;
+                    document.getElementById('current-song-artist').textContent = song.artist;
+                    document.getElementById('current-song-cover').src = song.cover;
+                    document.getElementById('music-player').classList.add('active');
+                    
+                    // Set audio source and play
+                    audioPlayer.src = song.source;
+                    audioPlayer.load();
+                    
+                    // Play after a small delay to ensure loading
+                    setTimeout(() => {
+                        audioPlayer.play().catch(error => {
+                            console.error('Error playing song:', error);
+                            // Try alternative URL format if first attempt fails
+                            const alternativeUrl = song.source.replace('export=download', 'export=view');
+                            audioPlayer.src = alternativeUrl;
+                            audioPlayer.load();
+                            audioPlayer.play().catch(err => {
+                                console.error('Error playing song with alternative URL:', err);
+                                alert('Error playing song. Please try again.');
+                            });
+                        });
+                    }, 100);
+                }
+            } catch (error) {
+                console.error('Error in playSong:', error);
+                alert('Error playing song. Please try again.');
             }
         }
+
+        // Add error handling for audioPlayer
+        document.getElementById('audio-player').addEventListener('error', (e) => {
+            console.error('Audio player error:', e);
+            alert('Error playing the song. Please try again.');
+        });
 
         // Add smooth transitions when updating song info
         function updateMusicPlayer() {
@@ -558,6 +637,34 @@
                 coverImage.removeEventListener('click', toggleMinimizePlayer);
             }
         }
+
+        audioPlayer.addEventListener('error', (e) => {
+            console.error('Audio player error:', e.target.error);
+            alert('Error playing audio. Please try refreshing the page.');
+        });
+
+        audioPlayer.addEventListener('loadstart', () => {
+            console.log('Started loading audio');
+        });
+
+        audioPlayer.addEventListener('canplay', () => {
+            console.log('Audio can start playing');
+        });
+
+        // Add these event listeners for better debugging
+        audioPlayer.addEventListener('loadstart', () => {
+            console.log('Started loading audio:', audioPlayer.src);
+        });
+
+        audioPlayer.addEventListener('canplay', () => {
+            console.log('Audio can start playing');
+        });
+
+        audioPlayer.addEventListener('error', (e) => {
+            console.error('Audio player error:', e);
+            console.error('Error code:', audioPlayer.error.code);
+            console.error('Error message:', audioPlayer.error.message);
+        });
     </script>
 </body>
 </html>

@@ -13,6 +13,7 @@ https://docs.djangoproject.com/en/5.1/ref/settings/
 import os
 from pathlib import Path
 from dotenv import load_dotenv
+import ssl
 
 # Load environment variables
 load_dotenv()
@@ -23,6 +24,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # Add these after your BASE_DIR definition
 ALBUM_COVER_FOLDER_ID = os.getenv('ALBUM_COVER_FOLDER_ID')
 SONG_FILE_FOLDER_ID = os.getenv('SONG_FILE_FOLDER_ID')
+GOOGLE_API_KEY = os.getenv('GOOGLE_API_KEY')  # Add this to your settings
 
 
 # Quick-start development settings - unsuitable for production
@@ -38,8 +40,28 @@ ALLOWED_HOSTS = []
 
 
 # Application definition
-
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+        },
+    },
+    'root': {
+        'handlers': ['console'],
+        'level': 'INFO',
+    },
+    'loggers': {
+        'musify': {
+            'handlers': ['console'],
+            'level': 'INFO',
+            'propagate': True,
+        },
+    },
+}
 INSTALLED_APPS = [
+    'corsheaders',  # Add this
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -50,6 +72,7 @@ INSTALLED_APPS = [
 ]
 
 MIDDLEWARE = [
+    'corsheaders.middleware.CorsMiddleware',  # Add this at the top
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -95,6 +118,8 @@ DATABASES = {
     }
 }
 
+ssl._create_default_https_context = ssl._create_unverified_context  # Only for development!
+
 
 # Password validation
 # https://docs.djangoproject.com/en/5.1/ref/settings/#auth-password-validators
@@ -137,3 +162,10 @@ STATIC_URL = 'static/'
 # https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+CORS_ALLOW_ALL_ORIGINS = True
+CORS_ALLOW_CREDENTIALS = True
+
+# Add Content Security Policy headers
+CSP_DEFAULT_SRC = ("'self'", "'unsafe-inline'", "'unsafe-eval'", "data:", "blob:", "https:", "http:")
+CSP_MEDIA_SRC = ("'self'", "https:", "http:", "data:", "blob:")

@@ -12,7 +12,7 @@ urlpatterns = [
     path('home', views.home),
     path('up_music', views.up_music),
     path('upload_music', views.upload_music),
-    # path('test_drive_connection', views.test_drive_connection),
-   
+    path('test_drive_connection', views.test_drive_connection),
+    path('get_songs', views.get_songs, name='get_songs'),
 
 ]

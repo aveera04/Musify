@@ -84,3 +84,43 @@ def upload_to_drive(file_obj, file_name, folder_id):
     except Exception as e:
         logger.error(f"Error uploading file: {str(e)}")
         return None
+
+def get_file_url(file_id, is_audio=False):
+    """
+    Creates a direct access URL for a Google Drive file
+    """
+    try:
+        if not file_id:
+            logger.error("No file ID provided")
+            return None
+
+        # Get file metadata
+        file = service.files().get(
+            fileId=file_id,
+            fields='id, mimeType'
+        ).execute()
+
+        # Set file permission to be publicly accessible
+        try:
+            service.permissions().create(
+                fileId=file_id,
+                body={
+                    'type': 'anyone',
+                    'role': 'reader'
+                },
+                fields='id'
+            ).execute()
+        except Exception as e:
+            logger.warning(f"Error setting permissions (might already be public): {str(e)}")
+
+        # Different URL format for audio files vs images
+        if is_audio:
+            # For audio files, use the direct download link
+            return f"https://drive.google.com/uc?export=download&id={file_id}"
+        else:
+            # For images, use the thumbnail link
+            return f"https://drive.google.com/thumbnail?id={file_id}&sz=w400"
+
+    except Exception as e:
+        logger.error(f"Error getting file URL: {str(e)}")
+        return None
