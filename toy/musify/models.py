@@ -1,5 +1,20 @@
 from django.db import models
 from django.utils import timezone
+from django.conf import settings
+import os
+
+# Create a function to determine upload path
+def song_upload_path(instance, filename):
+    # Clean the title and album name for use in paths
+    title = instance.title.replace(' ', '_').replace('/', '_')
+    album = instance.album.replace(' ', '_').replace('/', '_')
+    return f'data/{title}|{album}/{filename}'
+
+def cover_upload_path(instance, filename):
+    # Clean the title and album name for use in paths
+    title = instance.title.replace(' ', '_').replace('/', '_')
+    album = instance.album.replace(' ', '_').replace('/', '_')
+    return f'data/{title}|{album}/{filename}'
 
 # Create your models here.
 #    
@@ -12,20 +27,69 @@ class User(models.Model):
     gender = models.CharField(max_length=10)
     username = models.CharField(max_length=100)
     password = models.CharField(max_length=100)
+    profile_image = models.ImageField(upload_to='profile_images/', blank=True, null=True)
+    
     class Meta:
         db_table = "user"
+        
+    @property
+    def profile_image_url(self):
+        """Returns CloudFront URL for profile image"""
+        if self.profile_image:
+            return f"https://d3t799rwj17rbr.cloudfront.net/{self.profile_image.name}"
+        return "https://d3t799rwj17rbr.cloudfront.net/profile_images/default_profile.png"
 
 class Music(models.Model):
+    # Explicitly define id field to avoid migration issues
+    id = models.AutoField(primary_key=True)
     title = models.CharField(max_length=100)
     artist = models.CharField(max_length=100)
     album = models.CharField(max_length=100)
-    cover = models.URLField(max_length=500)  # Stores Google Drive file ID
-    song = models.URLField(max_length=500)   # Stores Google Drive file ID
+    cover = models.ImageField(upload_to=cover_upload_path)  # Use the function
+    song = models.FileField(upload_to=song_upload_path)     # Use the function
     created_at = models.DateTimeField(default=timezone.now)
+    # Add these fields to cache URLs for better performance
+    cover_url_cache = models.CharField(max_length=255, blank=True)
+    song_url_cache = models.CharField(max_length=255, blank=True)
 
     class Meta:
         db_table = "music"
         ordering = ['-created_at']  # Newest first
 
+    def save(self, *args, **kwargs):
+        # We need to save first if this is a new record
+        is_new = self.pk is None
+        if is_new:
+            super().save(*args, **kwargs)
+        
+        # Now we can generate paths with the title and album
+        if self.cover and not self.cover_url_cache:
+            self.cover_url_cache = f"https://d3t799rwj17rbr.cloudfront.net/{self.cover.name}"
+            
+        if self.song and not self.song_url_cache:
+            self.song_url_cache = f"https://d3t799rwj17rbr.cloudfront.net/{self.song.name}"
+            
+        # Save again if we're updating an existing record
+        if not is_new:
+            super().save(*args, **kwargs)
+        
     def __str__(self):
         return f"{self.title} - {self.artist}"
+
+    @property
+    def cover_url(self):
+        """Returns CloudFront URL for cover image"""
+        if self.cover_url_cache:
+            return self.cover_url_cache
+        elif self.cover:
+            return f"https://d3t799rwj17rbr.cloudfront.net/{self.cover.name}"
+        return None
+
+    @property
+    def song_url(self):
+        """Returns CloudFront URL for song file"""
+        if self.song_url_cache:
+            return self.song_url_cache
+        elif self.song:
+            return f"https://d3t799rwj17rbr.cloudfront.net/{self.song.name}"
+        return None

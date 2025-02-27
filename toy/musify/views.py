@@ -1,10 +1,10 @@
 import os
 import logging
-from django.shortcuts import render, redirect
+from django.shortcuts import render, redirect, get_object_or_404
 from django.http import HttpResponse, JsonResponse
 from django.conf import settings
 from musify.models import *
-from .google_drive import upload_to_drive, get_file_url
+
 from dotenv import load_dotenv
 
 # Configure logger
@@ -98,71 +98,49 @@ def upload_music(request):
             song_name = request.POST.get('songName')
             artist_name = request.POST.get('artistName')
             album_name = request.POST.get('albumName')
-
-            # Validate form data
-            if not all([song_name, artist_name, album_name]):
-                return render(request, 'up_music.html', 
-                    {'error': 'Please fill in all fields'})
-
-            # Get files
             album_cover = request.FILES.get('albumCover')
             song_file = request.FILES.get('songFile')
 
-            album_cover_folder_id = os.getenv("ALBUM_COVER_FOLDER_ID")
-            if not album_cover or not song_file:
+            # Validate inputs
+            if not all([song_name, artist_name, album_name, album_cover, song_file]):
                 return render(request, 'up_music.html', 
-                    {'error': 'Please select both album cover and song file'})
+                    {'error': 'All fields are required'})
 
             # Verify file types
             if not album_cover.content_type.startswith('image/'):
                 return render(request, 'up_music.html', 
-                    {'error': 'Please upload a valid image file for album cover'})
+                    {'error': 'Please upload a valid image file'})
 
-            allowed_audio_types = ['audio/mpeg', 'audio/mp3']
-            if song_file.content_type not in allowed_audio_types:
+            if not song_file.content_type in ['audio/mpeg', 'audio/mp3']:
                 return render(request, 'up_music.html', 
                     {'error': 'Please upload an MP3 file'})
-
-            # Upload cover
+                    
+            # Preserve original filenames but ensure they're clean
+            cover_ext = os.path.splitext(album_cover.name)[1]
+            song_ext = os.path.splitext(song_file.name)[1]
             
-            
-            album_cover_id = upload_to_drive(album_cover, 
-                                           f"cover_{song_name}{os.path.splitext(album_cover.name)[1]}", 
-                                           album_cover_folder_id)
-            
-            if not album_cover_id:
-                return render(request, 'up_music.html', 
-                    {'error': 'Failed to upload album cover'})
+            # Use simple filenames within the folder
+            album_cover.name = f"cover{cover_ext}"
+            song_file.name = f"song{song_ext}"
 
-            # Upload song
-            song_file_folder_id = os.getenv("SONG_FILE_FOLDER_ID")
-            song_file_id = upload_to_drive(song_file, 
-                                         f"{song_name}{os.path.splitext(song_file.name)[1]}", 
-                                         song_file_folder_id)
-            
-            if not song_file_id:
-                return render(request, 'up_music.html', 
-                    {'error': 'Failed to upload song file'})
-
-            # Create URLs
-            album_cover_url = f"https://drive.google.com/uc?id={album_cover_folder_id}"
-            song_file_url = f"https://drive.google.com/uc?id={song_file_folder_id}"
-
-            # Save to database
+            # Create music object (this will handle the upload_to path)
             new_music = Music(
                 title=song_name,
                 artist=artist_name,
                 album=album_name,
-                cover=album_cover_id,
-                song=song_file_id
+                cover=album_cover,
+                song=song_file
             )
+            
+            # Save to trigger the upload and URL cache
             new_music.save()
 
-            return HttpResponse('Song uploaded and saved successfully!')
+            return HttpResponse('Song uploaded successfully!')
 
         except Exception as e:
+            logger.error(f"Upload failed: {str(e)}")
             return render(request, 'up_music.html', 
-                {'error': f'An error occurred: {str(e)}'})
+                {'error': f'Upload failed: {str(e)}'})
 
     return render(request, 'up_music.html')
 
@@ -177,52 +155,117 @@ def handle_uploaded_file(file, filename, upload_path):
 def get_songs(request):
     try:
         songs = Music.objects.all()
-        logger.info(f"Found {songs.count()} songs in database")
-        songs_list = []
-        
-        for song in songs:
-            try:
-                cover_url = get_file_url(song.cover, is_audio=False)
-                song_url = get_file_url(song.song, is_audio=True)
-                
-                logger.info(f"Processing {song.title}")
-                logger.info(f"Cover URL: {cover_url}")
-                logger.info(f"Song URL: {song_url}")
-                
-                if cover_url and song_url:
-                    songs_list.append({
-                        'name': song.title,
-                        'artist': song.artist,
-                        'cover': cover_url,
-                        'source': song_url,
-                        'album': song.album
-                    })
-                    logger.info(f"Successfully added {song.title}")
-                else:
-                    logger.error(f"Failed to get URLs for {song.title}")
-                    
-            except Exception as e:
-                logger.error(f"Error processing song {song.title}: {str(e)}")
-                continue
+        songs_list = [{
+            'name': song.title,
+            'artist': song.artist,
+            'cover': song.cover_url,
+            'source': song.song_url,
+            'album': song.album
+        } for song in songs]
         
         return JsonResponse({'songs': songs_list})
-        
     except Exception as e:
         logger.error(f"Error in get_songs view: {str(e)}")
         return JsonResponse({'error': str(e)}, status=500)
 
-def test_drive_connection(request):
+def check_song_exists(request):
+    """Check if a song with the given name already exists"""
+    if request.method == 'GET':
+        song_name = request.GET.get('song_name')
+        if song_name:
+            # Check if song exists in the database
+            exists = Music.objects.filter(title__iexact=song_name).exists()
+            return JsonResponse({'exists': exists})
+    
+    return JsonResponse({'exists': False})
+
+def test_storage_connection(request):
     try:
-        from .google_drive import service
-        about = service.about().get(fields="user,storageQuota").execute()
+        import boto3
+        s3 = boto3.client('s3',
+            aws_access_key_id=settings.AWS_ACCESS_KEY_ID,
+            aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY,
+            region_name=settings.AWS_S3_REGION_NAME
+        )
+        
+        response = s3.list_objects_v2(
+            Bucket=settings.AWS_STORAGE_BUCKET_NAME,
+            MaxKeys=1
+        )
+        
         return JsonResponse({
             'status': 'success',
-            'user': about['user']['emailAddress'],
-            'quota': about['storageQuota']
+            'message': 'Successfully connected to S3',
+            'bucket': settings.AWS_STORAGE_BUCKET_NAME,
+            'region': settings.AWS_S3_REGION_NAME,
+            'cloudfront': settings.CLOUDFRONT_DOMAIN
         })
     except Exception as e:
         return JsonResponse({
             'status': 'error',
             'message': str(e)
         }, status=500)
+
+def profile(request):
+    # Check if user is logged in
+    if 'email' not in request.session or 'username' not in request.session:
+        return redirect('login')
+    
+    # Get user from session
+    email = request.session.get('email')
+    user = get_object_or_404(User, email=email)
+    
+    if request.method == 'POST':
+        action = request.POST.get('action')
+        
+        # Handle password update
+        if action == 'update_password':
+            current_password = request.POST.get('current_password')
+            new_password = request.POST.get('new_password')
+            confirm_password = request.POST.get('confirm_password')
+            
+            # Verify current password
+            if user.password != current_password:
+                return render(request, 'profile.html', {
+                    'user': user,
+                    'error': 'Current password is incorrect'
+                })
+                
+            # Check if new passwords match
+            if new_password != confirm_password:
+                return render(request, 'profile.html', {
+                    'user': user,
+                    'error': 'New passwords do not match'
+                })
+                
+            # Update password
+            user.password = new_password
+            user.save()
+            return render(request, 'profile.html', {
+                'user': user,
+                'success': 'Password updated successfully'
+            })
+            
+        # Handle profile image upload
+        elif action == 'update_image':
+            profile_image = request.FILES.get('profile_image')
+            if profile_image:
+                # Validate file type
+                if not profile_image.content_type.startswith('image/'):
+                    return render(request, 'profile.html', {
+                        'user': user,
+                        'error': 'Please upload a valid image file'
+                    })
+                
+                # Save the profile image
+                user.profile_image = profile_image
+                user.save()
+                
+                return render(request, 'profile.html', {
+                    'user': user,
+                    'success': 'Profile image updated successfully'
+                })
+    
+    # GET request - just display the profile
+    return render(request, 'profile.html', {'user': user})
 

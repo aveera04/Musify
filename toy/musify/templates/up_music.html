@@ -101,6 +101,17 @@
         #songFile {
             color: #b3b3b3;
         }
+
+        /* Add this for the warning message */
+        .warning {
+            color: #ff4d4d;
+            font-size: 0.8rem;
+            margin-top: 0.5rem;
+        }
+        
+        .input-error {
+            border-color: #ff4d4d !important;
+        }
     </style>
 </head>
 <body>
@@ -153,23 +164,75 @@
             }
         });
 
-        // document.getElementById('uploadForm').addEventListener('submit', function(e) {
-        //     e.preventDefault();
-            
-        //     const formData = {
-        //         songName: document.getElementById('songName').value,
-        //         artistName: document.getElementById('artistName').value,
-        //         albumName: document.getElementById('albumName').value,
-        //         albumCover: document.getElementById('albumCover').files[0]?.name || 'No file selected',
-        //         songFile: document.getElementById('songFile').files[0]?.name || 'No file selected'
-        //     };
+        // NEW CODE: Add song existence check
+        document.getElementById('songName').addEventListener('input', debounce(function() {
+            const songName = this.value.trim();
+            if (songName.length > 2) {  // Only check when there are at least 3 characters
+                checkSongExists(songName);
+            } else {
+                clearSongExistsWarning();
+            }
+        }, 500));  // Debounce to prevent too many requests
 
-        //     // Log the form data (in a real application, you would send this to a server)
-        //     console.log('Form submitted with data:', formData);
-        //     alert('Song uploaded successfully!');
-        //     this.reset();
-        //     document.getElementById('albumPreview').src = 'https://hebbkx1anhila5yf.public.blob.vercel-storage.com/IMG-20250211-WA0011.jpg-kOLAKB5NQjQwoOzbg7lGEnc1Xk5W4I.jpeg';
-        // });
+        // Debounce function to limit the number of API calls
+        function debounce(func, wait) {
+            let timeout;
+            return function() {
+                const context = this, args = arguments;
+                clearTimeout(timeout);
+                timeout = setTimeout(function() {
+                    func.apply(context, args);
+                }, wait);
+            };
+        }
+
+        function checkSongExists(songName) {
+            fetch(`/musify/check-song-exists/?song_name=${encodeURIComponent(songName)}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.exists) {
+                        displaySongExistsWarning();
+                    } else {
+                        clearSongExistsWarning();
+                    }
+                })
+                .catch(error => {
+                    console.error('Error checking song:', error);
+                });
+        }
+
+        function displaySongExistsWarning() {
+            // Check if warning already exists
+            if (!document.getElementById('songExistsWarning')) {
+                const warningElement = document.createElement('div');
+                warningElement.id = 'songExistsWarning';
+                warningElement.className = 'warning';
+                warningElement.textContent = '⚠️ A song with this name already exists in the database!';
+                
+                const songNameField = document.getElementById('songName');
+                songNameField.parentNode.appendChild(warningElement);
+                
+                // Highlight the input field
+                songNameField.classList.add('input-error');
+            }
+        }
+
+        function clearSongExistsWarning() {
+            const warningElement = document.getElementById('songExistsWarning');
+            if (warningElement) {
+                warningElement.remove();
+            }
+            
+            // Reset input field styling
+            document.getElementById('songName').classList.remove('input-error');
+        }
+        document.getElementById('uploadForm').addEventListener('submit', function(e) {
+            // Check if warning exists before submitting
+            if (document.getElementById('songExistsWarning')) {
+                e.preventDefault();
+                alert('Please choose a different song name as this one already exists.');
+            }
+});
     </script>
 </body>
 </html>
