@@ -182,16 +182,21 @@
     <div class="toast" id="toast"></div>
     <script>
         // Initialize playlist ID as a number (not a string)
-        const playlistId = "{{ playlist.id }}";  // Enclosed in quotes
+        const playlistId = "{{ playlist.id }}";  // No quotes here
         
-        // Log to verify the proper value
-        console.log("Playlist ID:", playlistId, typeof playlistId);
-        
-        // Other key variables
+        // Load songs from Django template
+        {% if songs_json %}
+        let songs = {{ songs_json|safe }};
+        {% else %}
         let songs = [];
+        {% endif %}
+        
         let currentSongIndex = 0;
         let isShuffled = false;
         let previousVolume = 1;
+        
+        // Log to verify data
+        console.log("Playlist ID:", playlistId, "Songs loaded:", songs.length);
     </script>
     
     <script src="/static/js/playlist_script.js"></script>

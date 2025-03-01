@@ -12,10 +12,10 @@ const totalTimeElem = document.getElementById('total-time');
 
 // Document ready
 document.addEventListener('DOMContentLoaded', () => {
-    // Load all available songs
-    loadAllSongs();
+    // First load the playlist songs to display
+    loadPlaylistSongs();
     
-    // Load user playlists
+    // Load user playlists for sidebar
     loadUserPlaylists();
     
     // Initialize volume slider color
@@ -28,19 +28,21 @@ document.addEventListener('DOMContentLoaded', () => {
 // Load songs in the current playlist
 async function loadPlaylistSongs() {
     try {
-        // If songs are already loaded from Django, just update UI
-        if (songs && songs.length > 0) {
-            console.log("Songs already loaded from Django, skipping fetch");
-            return;
-        }
+        // Remove this condition that prevents loading songs
+        // if (songs && songs.length > 0) {
+        //     console.log("Songs already loaded from Django, skipping fetch");
+        //     return;
+        // }
         
-        // Otherwise do the original fetch
+        console.log("Loading playlist songs for playlist ID:", playlistId);
+        
         const response = await fetch(`/musify/get_playlist_songs/${playlistId}/`);
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
         }
         
         const data = await response.json();
+        console.log("Playlist songs data:", data);
         
         if (data.songs) {
             songs = data.songs.map(song => {
@@ -53,8 +55,11 @@ async function loadPlaylistSongs() {
                     album: song.album
                 };
             });
-            console.log("Loaded songs via AJAX:", songs);
+            console.log("Processed playlist songs:", songs);
             updatePlaylistGrid();
+        } else {
+            console.warn("No songs found in response:", data);
+            updatePlaylistGrid(); // Update grid even with empty songs array
         }
     } catch (error) {
         console.error('Error loading playlist songs:', error);
@@ -77,14 +82,19 @@ function updatePlaylistGrid() {
         `;
         return;
     }
+    
     songs.forEach((song, index) => {
         const songCard = document.createElement('div');
         songCard.className = 'song-card';
+        if (index === currentSongIndex && !audioPlayer.paused && audioPlayer.src) {
+            songCard.classList.add('playing');
+        }
+        
         songCard.innerHTML = `
             <div class="song-image" onclick="playSong(${index})">
-                <img src="${song.cover_url}" alt="${song.title} cover">
+                <img src="${song.cover_url}" alt="${song.title}" onerror="this.src='{% static \'images/default-album.jpg\' %}'">
                 <div class="play-overlay">
-                    <i class="fas fa-play"></i>
+                    <i class="fas fa-play-circle"></i>
                 </div>
             </div>
             <div class="song-info">
@@ -93,10 +103,11 @@ function updatePlaylistGrid() {
             </div>
             <div class="song-actions">
                 <button class="remove-btn" onclick="removeSong(${song.id})" title="Remove from playlist">
-                    <i class="fas fa-minus"></i>
+                    <i class="fas fa-trash"></i>
                 </button>
             </div>
         `;
+        
         songsGrid.appendChild(songCard);
     });
 }
@@ -351,11 +362,19 @@ function playSong(index) {
         currentSongIndex = index;
         const song = songs[index];
         
+        // Update song info
         document.getElementById('current-song-title').textContent = song.title;
         document.getElementById('current-song-artist').textContent = song.artist;
         document.getElementById('current-song-cover').src = song.cover_url;
         
+        // Prepare audio player
         audioPlayer.src = song.song_url;
+        
+        // Show the music player with animation
+        const musicPlayer = document.getElementById('music-player');
+        musicPlayer.classList.add('active');
+        
+        // Play the song
         audioPlayer.play().catch(error => {
             console.error('Error playing song:', error);
             showToast('Error playing song. Try again.', 'error');
@@ -363,6 +382,7 @@ function playSong(index) {
         
         // Update play button to show pause
         const playPauseBtn = document.getElementById('playPauseBtn');
+        playPauseBtn.innerHTML = '<i class="fas fa-pause"></i>';
         playPauseBtn.classList.remove('paused');
         
         // Highlight the current playing song
@@ -383,7 +403,13 @@ function stopPlayback() {
     document.getElementById('current-song-title').textContent = 'Select a song';
     document.getElementById('current-song-artist').textContent = 'Artist';
     document.getElementById('current-song-cover').src = "{% static 'images/default-album.jpg' %}";
+    
+    // Hide music player
+    document.getElementById('music-player').classList.remove('active');
+    
+    // Update play button
     const playPauseBtn = document.getElementById('playPauseBtn');
+    playPauseBtn.innerHTML = '<i class="fas fa-play"></i>';
     playPauseBtn.classList.add('paused');
 }
 
@@ -762,3 +788,20 @@ function toggleMinimizePlayer() {
         minimizeBtn.className = 'fas fa-chevron-left';
     }
 }
+
+document.addEventListener('DOMContentLoaded', function() {
+    const audioPlayer = document.getElementById('audio-player');
+    
+    audioPlayer.addEventListener('play', function() {
+        document.getElementById('music-player').classList.add('active');
+    });
+    
+    audioPlayer.addEventListener('pause', function() {
+        // Don't hide player when paused, only update the button
+        document.getElementById('playPauseBtn').innerHTML = '<i class="fas fa-play"></i>';
+    });
+    
+    audioPlayer.addEventListener('ended', function() {
+        nextSong(); // Automatically play the next song
+    });
+});
