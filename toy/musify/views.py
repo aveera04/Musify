@@ -164,15 +164,16 @@ def get_songs(request):
             'id': song.id,
             'name': song.title,
             'artist': song.artist,
-            'cover': song.cover_url,
-            'source': song.song_url,
-            'album': song.album
+            'cover': song.cover_url if hasattr(song, 'cover_url') else '/static/images/default-album.jpg',
+            'source': song.song_url if hasattr(song, 'song_url') else '',
+            'album': song.album if hasattr(song, 'album') else ''
         } for song in songs]
         
         return JsonResponse({'songs': songs_list})
     except Exception as e:
-        logger.error(f"Error in get_songs view: {str(e)}")
-        return JsonResponse({'error': str(e)}, status=500)
+        logger.error(f"Error in get_songs view: {str(e)}", exc_info=True)
+        # Return an empty list instead of error for graceful degradation
+        return JsonResponse({'songs': [], 'error': str(e)}, status=500)
 
 def check_song_exists(request):
     """Check if a song with the given name already exists"""

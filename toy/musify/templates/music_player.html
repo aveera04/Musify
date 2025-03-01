@@ -1,0 +1,55 @@
+{% load static %}
+
+<div class="music-player" id="music-player">
+    <div class="song-info">
+        <img id="current-song-cover" class="current-song-cover" src="static/images/default-album.jpg" alt="Album Cover">
+        <div class="song-text">
+            <h3 id="current-song-title">Select a song</h3>
+            <p id="current-song-artist">Artist</p>
+        </div>
+    </div>
+
+    <div class="controls">
+        <button class="prev-btn" onclick="prevSong()" title="Previous">
+            <i class="fas fa-step-backward"></i>
+        </button>
+
+        <button 
+            class="play-pause-btn paused" 
+            id="playPauseBtn"
+            onclick="togglePlayPause()"
+        >
+            <span class="play-pause-icon"></span>
+        </button>
+
+        <button class="next-btn" onclick="nextSong()" title="Next">
+            <i class="fas fa-step-forward"></i>
+        </button>
+    </div>
+    <div class="timeline">
+        <input type="range" id="song-progress" value="0" max="100">
+        <div class="time-info">
+            <span id="current-time">0:00</span>
+            <span id="total-time">0:00</span>
+        </div>
+    </div>
+    <div class="play-mode-controls">
+        <button class="mode-btn" id="shuffleBtn" onclick="toggleShuffle()" title="Shuffle">
+            <i class="fas fa-random"></i>
+        </button>
+        <button class="mode-btn" id="loopBtn" onclick="toggleLoop()" title="Loop">
+            <i class="fas fa-redo"></i>
+        </button>
+    </div>
+
+    <div class="volume-control">
+        <button class="volume-btn" id="volumeBtn" onclick="toggleMute()">
+            <i class="fas fa-volume-up"></i>
+        </button>
+        <input type="range" class="volume-slider" id="volumeSlider" min="0" max="100" value="100">
+    </div>
+    <button class="minimize-btn" onclick="toggleMinimizePlayer()">
+        <i class="fas fa-chevron-left"></i>
+    </button>
+    <audio id="audio-player" src=""></audio>
+</div>
