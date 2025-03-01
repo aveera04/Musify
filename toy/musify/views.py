@@ -4,6 +4,8 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.http import HttpResponse, JsonResponse
 from django.conf import settings
 from musify.models import *
+from django.contrib import messages
+import json
 
 from dotenv import load_dotenv
 
@@ -18,6 +20,9 @@ def test(request):
 
 def intro(request):
     return render(request, 'intro.html')
+
+def welcome(request):
+    return render(request, 'welcome.html')
 
 # def log_in(request):
 #     return render(request, 'log_in.html')
@@ -156,6 +161,7 @@ def get_songs(request):
     try:
         songs = Music.objects.all()
         songs_list = [{
+            'id': song.id,
             'name': song.title,
             'artist': song.artist,
             'cover': song.cover_url,
@@ -205,67 +211,297 @@ def test_storage_connection(request):
             'status': 'error',
             'message': str(e)
         }, status=500)
-
 def profile(request):
+    print(f"Session data: {request.session}")
     # Check if user is logged in
     if 'email' not in request.session or 'username' not in request.session:
-        return redirect('login')
+        return redirect('./login')
     
     # Get user from session
     email = request.session.get('email')
     user = get_object_or_404(User, email=email)
+    
+    return render(request, 'profile.html', {'user': user})
+def update_profile(request):
+    # Check if user is logged in
+    if 'email' not in request.session or 'username' not in request.session:
+        return redirect('./login')
+    
+    # Get user from session
+    email = request.session.get('email')
+    user = get_object_or_404(User, email=email)
+    
+    message = None
+    message_type = None
     
     if request.method == 'POST':
         action = request.POST.get('action')
         
         # Handle password update
         if action == 'update_password':
-            current_password = request.POST.get('current_password')
-            new_password = request.POST.get('new_password')
-            confirm_password = request.POST.get('confirm_password')
+            current_password = request.POST.get('currentPassword')
+            new_password = request.POST.get('newPassword')
+            confirm_password = request.POST.get('confirmPassword')
             
             # Verify current password
             if user.password != current_password:
-                return render(request, 'profile.html', {
-                    'user': user,
-                    'error': 'Current password is incorrect'
-                })
-                
+                message = 'Current password is incorrect'
+                message_type = 'error'
             # Check if new passwords match
-            if new_password != confirm_password:
-                return render(request, 'profile.html', {
-                    'user': user,
-                    'error': 'New passwords do not match'
-                })
-                
-            # Update password
-            user.password = new_password
-            user.save()
-            return render(request, 'profile.html', {
-                'user': user,
-                'success': 'Password updated successfully'
-            })
+            elif new_password != confirm_password:
+                message = 'New passwords do not match'
+                message_type = 'error'
+            else:
+                # Update password
+                user.password = new_password
+                user.save()
+                message = 'Password updated successfully'
+                message_type = 'success'
             
         # Handle profile image upload
         elif action == 'update_image':
-            profile_image = request.FILES.get('profile_image')
+            profile_image = request.FILES.get('imageUpload')
             if profile_image:
                 # Validate file type
                 if not profile_image.content_type.startswith('image/'):
-                    return render(request, 'profile.html', {
-                        'user': user,
-                        'error': 'Please upload a valid image file'
-                    })
-                
-                # Save the profile image
-                user.profile_image = profile_image
-                user.save()
-                
-                return render(request, 'profile.html', {
-                    'user': user,
-                    'success': 'Profile image updated successfully'
-                })
+                    message = 'Please upload a valid image file'
+                    message_type = 'error'
+                else:
+                    # Save the profile image
+                    user.profile_image = profile_image
+                    user.save()
+                    message = 'Profile image updated successfully'
+                    message_type = 'success'
     
     # GET request - just display the profile
-    return render(request, 'profile.html', {'user': user})
+    context = {
+        'user': user,
+    }
+    
+    if message:
+        context['message'] = message
+        context['message_type'] = message_type
+        
+    return redirect('./login')
 
+def play_list(request):
+    return render(request, 'play_list.html')
+
+import json
+
+def playlist(request, playlist_id=None):
+    """View a specific playlist"""
+    if 'email' not in request.session or 'username' not in request.session:
+        return redirect('./login')
+    
+    # Get user from session
+    email = request.session.get('email')
+    user = get_object_or_404(User, email=email)
+    
+    # Check if user has any playlists
+    if not Playlist.objects.filter(user=user).exists():
+        # Create a default playlist
+        default_playlist = Playlist(name="My First Playlist", user=user)
+        default_playlist.save()
+        playlist_id = default_playlist.id
+    
+    # Get playlist by ID or default to first playlist
+    if playlist_id:
+        playlist = get_object_or_404(Playlist, id=playlist_id, user=user)
+    else:
+        playlist = Playlist.objects.filter(user=user).first()
+    
+    # Get all songs in the playlist
+    songs = playlist.songs.all()
+    songs_list = [{
+        'id': song.id,
+        'title': song.title,
+        'artist': song.artist,
+        'cover_url': song.cover_url,
+        'song_url': song.song_url,
+        'album': song.album
+    } for song in songs]
+    
+    # Get all user playlists for sidebar
+    user_playlists = Playlist.objects.filter(user=user)
+    playlists_list = [{
+        'id': p.id,
+        'name': p.name,
+        'song_count': p.songs.count(),
+        'is_current': p.id == playlist.id
+    } for p in user_playlists]
+    
+    # Pass data to template
+    context = {
+        'user': user,
+        'playlist': playlist,
+        'songs_json': json.dumps(songs_list),  # For JavaScript initialization
+        'playlists': playlists_list
+    }
+    
+    return render(request, 'playlist.html', context)
+
+def create_playlist(request):
+    """Create a new playlist"""
+    if 'email' not in request.session or 'username' not in request.session:
+        return redirect('./login')
+    
+    # Get user from session
+    email = request.session.get('email')
+    user = get_object_or_404(User, email=email)
+    
+    if request.method == 'POST':
+        name = request.POST.get('playlist_name')
+        if name:
+            playlist = Playlist(name=name, user=user)
+            playlist.save()
+            return JsonResponse({'status': 'success', 'playlist_id': playlist.id, 'playlist_name': name})
+        return JsonResponse({'status': 'error', 'message': 'Playlist name is required'})
+    
+    return redirect('./home')
+
+def add_to_playlist(request):
+    """Add a song to a playlist"""
+    if 'email' not in request.session or 'username' not in request.session:
+        return JsonResponse({'status': 'error', 'message': 'Not logged in'}, status=401)
+    
+    # Get user from session
+    email = request.session.get('email')
+    user = get_object_or_404(User, email=email)
+    
+    if request.method == 'POST':
+        playlist_id = request.POST.get('playlist_id')
+        song_id = request.POST.get('song_id')
+        
+        if playlist_id and song_id:
+            try:
+                playlist = get_object_or_404(Playlist, id=playlist_id, user=user)
+                song = get_object_or_404(Music, id=song_id)
+                
+                # Add song to playlist if it's not already there
+                if song not in playlist.songs.all():
+                    playlist.songs.add(song)
+                    return JsonResponse({'status': 'success'})
+                return JsonResponse({'status': 'info', 'message': 'Song already in playlist'})
+            except Exception as e:
+                return JsonResponse({'status': 'error', 'message': str(e)})
+            
+        return JsonResponse({'status': 'error', 'message': 'Playlist ID and Song ID are required'})
+    
+    return JsonResponse({'status': 'error', 'message': 'Invalid request method'})
+
+def remove_from_playlist(request):
+    """Remove a song from a playlist"""
+    if 'email' not in request.session or 'username' not in request.session:
+        return JsonResponse({'status': 'error', 'message': 'Not logged in'}, status=401)
+    
+    # Get user from session
+    email = request.session.get('email')
+    user = get_object_or_404(User, email=email)
+    
+    if request.method == 'POST':
+        playlist_id = request.POST.get('playlist_id')
+        song_id = request.POST.get('song_id')
+        
+        if playlist_id and song_id:
+            playlist = get_object_or_404(Playlist, id=playlist_id, user=user)
+            song = get_object_or_404(Music, id=song_id)
+            
+            # Remove song from playlist
+            playlist.songs.remove(song)
+            return JsonResponse({'status': 'success'})
+        return JsonResponse({'status': 'error', 'message': 'Playlist ID and Song ID are required'})
+    
+    return JsonResponse({'status': 'error', 'message': 'Invalid request method'})
+
+def user_playlists(request):
+    """Get all playlists for the current user"""
+    if 'email' not in request.session or 'username' not in request.session:
+        return JsonResponse({'status': 'error', 'message': 'Not logged in'}, status=401)
+    
+    # Get user from session
+    email = request.session.get('email')
+    user = get_object_or_404(User, email=email)
+    
+    playlists = user.playlists.all()
+    playlists_list = [{
+        'id': playlist.id,
+        'name': playlist.name,
+        'song_count': playlist.songs.count()
+    } for playlist in playlists]
+    
+    return JsonResponse({'playlists': playlists_list})
+
+def get_playlist_songs(request, playlist_id):
+    """Get all songs in a playlist"""
+    if 'email' not in request.session or 'username' not in request.session:
+        return JsonResponse({'status': 'error', 'message': 'Not logged in'}, status=401)
+    
+    # Get user from session
+    email = request.session.get('email')
+    user = get_object_or_404(User, email=email)
+    
+    try:
+        playlist = get_object_or_404(Playlist, id=playlist_id, user=user)
+        songs = playlist.songs.all()
+        songs_list = [{
+            'id': song.id,
+            'name': song.title,
+            'artist': song.artist,
+            'cover': song.cover_url,
+            'source': song.song_url,
+            'album': song.album
+        } for song in songs]
+        
+        return JsonResponse({'songs': songs_list})
+    except Exception as e:
+        return JsonResponse({'status': 'error', 'message': str(e)})
+def play_playlist(request, playlist_id):
+    """View for playing a specific playlist's songs"""
+    if 'email' not in request.session or 'username' not in request.session:
+        return redirect('./login')
+    
+    # Get user from session
+    email = request.session.get('email')
+    user = get_object_or_404(User, email=email)
+    
+    try:
+        # Get the playlist and verify ownership
+        playlist = get_object_or_404(Playlist, id=playlist_id, user=user)
+        
+        # Get all songs in the playlist
+        songs = playlist.songs.all()
+        
+        # Format songs for the template
+        songs_list = [{
+            'id': song.id,
+            'title': song.title,
+            'artist': song.artist,
+            'cover_url': song.cover_url,
+            'song_url': song.song_url,
+            'album': song.album
+        } for song in songs]
+        
+        # Get all user playlists for sidebar
+        user_playlists = user.playlists.all()
+        playlists_list = [{
+            'id': p.id,
+            'name': p.name,
+            'song_count': p.songs.count(),
+            'is_active': p.id == playlist.id
+        } for p in user_playlists]
+        
+        # Pass all data directly to template
+        context = {
+            'user': user,
+            'playlist': playlist,
+            'songs': songs_list,
+            'playlists': playlists_list,
+            'songs_json': json.dumps(songs_list)  # For JavaScript to access
+        }
+        
+        return render(request, 'play_playlist.html', context)
+        
+    except Exception as e:
+        messages.error(request, f"Error loading playlist: {str(e)}")
+        return redirect('home')

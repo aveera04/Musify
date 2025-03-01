@@ -27,7 +27,7 @@
                 <span>📤</span>
                 Upload Music
             </a>
-            <a href="#" class="nav-item">
+            <a href="/musify/playlist/" class="nav-item">
                 <span>📚</span>
                 Your Library
             </a>
@@ -41,7 +41,14 @@
                 <a href="#" class="playlist-item">new songs <button class="delete-btn" onclick="deletePlaylist(event)">🗑️</button></a>
                 <a href="#" class="playlist-item">Abir Chowdhury <button class="delete-btn" onclick="deletePlaylist(event)">🗑️</button></a>
             </div>
-            <button class="expand-btn" onclick="addPlaylist()">+</button>
+            <div class="create-playlist">
+                <h3>Create New Playlist</h3>
+                <form method="POST" action="{% url 'create_playlist' %}">
+                    {% csrf_token %}
+                    <input type="text" name="playlist_name" placeholder="My Awesome Playlist">
+                    <button type="submit">Create</button>
+                </form>
+            </div>
         </div>
         
     </aside>
@@ -66,7 +73,7 @@
     <!-- Profile Popup -->
     <div class="profile-popup hidden" id="profilePopup">
       <ul>
-        <li><a href="#">View Profile</a></li>
+        <li><a href="profile">View Profile</a></li>
         <li><a href="#">Settings</a></li>
         <li>
           <!-- Link to your logout route; adjust as needed in urls.py -->
@@ -144,10 +151,10 @@
         let songs = [];
 
         // Add audio player event listeners
-        audioPlayer.addEventListener('error', (e) => {
-            console.error('Audio player error:', e.target.error);
-            alert('Error playing audio. Please try refreshing the page.');
-        });
+        // audioPlayer.addEventListener('error', (e) => {
+        //     console.error('Audio player error:', e.target.error);
+        //     alert('Error playing audio. Please try refreshing the page.');
+        // });
 
         audioPlayer.addEventListener('loadstart', () => {
             console.log('Started loading audio');
@@ -158,15 +165,15 @@
         });
 
         // Add this after audioPlayer initialization
-        audioPlayer.addEventListener('error', (e) => {
-            console.error('Audio player error:', e.target.error);
-            if (e.target.error.code === 4) {
-                console.error('Format not supported');
-                alert('This audio format is not supported by your browser. Try converting to MP3.');
-            } else {
-                alert('Error playing audio. Please try refreshing the page.');
-            }
-        });
+        // audioPlayer.addEventListener('error', (e) => {
+        //     console.error('Audio player error:', e.target.error);
+        //     if (e.target.error.code === 4) {
+        //         console.error('Format not supported');
+        //         alert('This audio format is not supported by your browser. Try converting to MP3.');
+        //     } else {
+        //         alert('Error playing audio. Please try refreshing the page.');
+        //     }
+        // });
 
         audioPlayer.addEventListener('loadeddata', () => {
             console.log('Audio data loaded successfully');

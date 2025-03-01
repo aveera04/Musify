@@ -1,6 +1,7 @@
 from django.db import models
 from django.utils import timezone
 from django.conf import settings
+from django.templatetags.static import static
 import os
 
 # Create a function to determine upload path
@@ -34,10 +35,10 @@ class User(models.Model):
         
     @property
     def profile_image_url(self):
-        """Returns CloudFront URL for profile image"""
+        """Returns CloudFront URL for profile image or default image if none exists"""
         if self.profile_image:
             return f"https://d3t799rwj17rbr.cloudfront.net/{self.profile_image.name}"
-        return "https://d3t799rwj17rbr.cloudfront.net/profile_images/default_profile.png"
+        return static('images/profile.png')  # Use the static file instead
 
 class Music(models.Model):
     # Explicitly define id field to avoid migration issues
@@ -93,3 +94,16 @@ class Music(models.Model):
         elif self.song:
             return f"https://d3t799rwj17rbr.cloudfront.net/{self.song.name}"
         return None
+
+class Playlist(models.Model):
+    name = models.CharField(max_length=100)
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='playlists')
+    songs = models.ManyToManyField(Music, related_name='playlists', blank=True)
+    created_at = models.DateTimeField(default=timezone.now)
+    
+    class Meta:
+        db_table = "playlist"
+        ordering = ['-created_at']
+    
+    def __str__(self):
+        return f"{self.name} by {self.user.username}"

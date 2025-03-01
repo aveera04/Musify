@@ -1,0 +1,839 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>User Profile - Musify</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        }
+        
+        body {
+            background-color: #0a1814;
+            color: white;
+            display: flex;
+            justify-content: center;
+            padding: 40px 20px;
+        }
+        
+        .profile-container {
+            width: 100%;
+            max-width: 800px;
+            background-color: #041410;
+            border-radius: 10px;
+            padding: 30px;
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+        }
+        
+        .profile-header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+        
+        .profile-header h1 {
+            color: #1ed760;
+            font-size: 28px;
+            margin-bottom: 10px;
+        }
+        
+        .profile-content {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 30px;
+        }
+        
+        @media (min-width: 768px) {
+            .profile-content {
+                grid-template-columns: 1fr 2fr;
+            }
+        }
+        
+        /* Profile Image Section */
+        .profile-image-container {
+            position: relative;
+            width: 200px;
+            height: 200px;
+            margin: 0 auto;
+        }
+        
+        .profile-image {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 4px solid #1ed760;
+            transition: all 0.3s ease;
+        }
+        
+        .edit-buttons {
+            position: absolute;
+            bottom: 10px;
+            right: 10px;
+            display: flex;
+            gap: 10px;
+        }
+        
+        .edit-button {
+            background-color: #1ed760;
+            color: #041410;
+            border: none;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            font-size: 16px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+        }
+        
+        .edit-button:hover {
+            transform: scale(1.1);
+            background-color: #1fdf64;
+        }
+        
+        /* User Details Section */
+        .user-details {
+            background-color: #0a271e;
+            padding: 20px;
+            border-radius: 8px;
+        }
+        
+        .user-details h2 {
+            color: #1ed760;
+            margin-bottom: 20px;
+            border-bottom: 1px solid #1a3932;
+            padding-bottom: 10px;
+        }
+        
+        .detail-item {
+            display: flex;
+            margin-bottom: 15px;
+        }
+        
+        .detail-label {
+            width: 120px;
+            color: #a7a7a7;
+            font-weight: 500;
+        }
+        
+        .detail-value {
+            flex: 1;
+            word-break: break-word;
+        }
+        
+        /* Change Password Section */
+        .change-password {
+            background-color: #0a271e;
+            padding: 20px;
+            border-radius: 8px;
+            grid-column: 1 / -1;
+        }
+        
+        .change-password h2 {
+            color: #1ed760;
+            margin-bottom: 20px;
+            border-bottom: 1px solid #1a3932;
+            padding-bottom: 10px;
+        }
+        
+        .password-form {
+            display: grid;
+            gap: 15px;
+        }
+        
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+        
+        .form-group label {
+            color: #a7a7a7;
+            font-size: 14px;
+        }
+        
+        .form-group input {
+            background-color: #0a1814;
+            border: 1px solid #1a3932;
+            color: white;
+            padding: 12px 15px;
+            border-radius: 4px;
+            outline: none;
+            transition: all 0.3s ease;
+        }
+        
+        .form-group input:focus {
+            border-color: #1ed760;
+            box-shadow: 0 0 0 2px rgba(30, 215, 96, 0.2);
+        }
+        
+        .form-actions {
+            display: flex;
+            justify-content: flex-end;
+            margin-top: 20px;
+        }
+        
+        .save-button {
+            background-color: #1ed760;
+            color: #041410;
+            border: none;
+            border-radius: 4px;
+            padding: 12px 24px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .save-button:hover {
+            background-color: #1fdf64;
+            transform: translateY(-2px);
+        }
+        
+        .save-button:active {
+            transform: translateY(0);
+        }
+        
+        /* Upload Modal */
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.7);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+        }
+        
+        .modal.active {
+            opacity: 1;
+            visibility: visible;
+        }
+        
+        .modal-content {
+            background-color: #041410;
+            border-radius: 8px;
+            padding: 30px;
+            width: 90%;
+            max-width: 500px;
+            max-height: 90vh;
+            overflow-y: auto;
+            position: relative;
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+            transform: translateY(-20px);
+            transition: all 0.3s ease;
+        }
+        
+        .modal.active .modal-content {
+            transform: translateY(0);
+        }
+        
+        .modal-close {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            background: none;
+            border: none;
+            color: #a7a7a7;
+            font-size: 24px;
+            cursor: pointer;
+            transition: color 0.3s ease;
+        }
+        
+        .modal-close:hover {
+            color: #1ed760;
+        }
+        
+        .modal-header {
+            margin-bottom: 20px;
+        }
+        
+        .modal-header h3 {
+            color: #1ed760;
+        }
+        
+        .upload-area {
+            border: 2px dashed #1a3932;
+            border-radius: 8px;
+            padding: 30px;
+            text-align: center;
+            margin-bottom: 20px;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+        
+        .upload-area:hover {
+            border-color: #1ed760;
+        }
+        
+        .upload-area i {
+            font-size: 48px;
+            color: #1ed760;
+            margin-bottom: 15px;
+            display: block;
+        }
+        
+        .upload-area p {
+            color: #a7a7a7;
+            margin-bottom: 10px;
+        }
+        
+        .upload-area .file-info {
+            display: none;
+        }
+        
+        .upload-actions {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 20px;
+        }
+        
+        .upload-button {
+            background-color: #1ed760;
+            color: #041410;
+            border: none;
+            border-radius: 4px;
+            padding: 12px 24px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .upload-button:hover {
+            background-color: #1fdf64;
+        }
+        
+        .cancel-button {
+            background-color: transparent;
+            border: 1px solid #a7a7a7;
+            color: #a7a7a7;
+            border-radius: 4px;
+            padding: 12px 24px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .cancel-button:hover {
+            border-color: white;
+            color: white;
+        }
+        
+        /* Status Messages */
+        .status-message {
+            padding: 15px;
+            border-radius: 4px;
+            margin-bottom: 20px;
+            display: none;
+        }
+        
+        .success {
+            background-color: rgba(30, 215, 96, 0.1);
+            border: 1px solid #1ed760;
+            color: #1ed760;
+        }
+        
+        .error {
+            background-color: rgba(255, 77, 77, 0.1);
+            border: 1px solid #ff4d4d;
+            color: #ff4d4d;
+        }
+
+        /* Navigation button to go back */
+        .nav-back {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: none;
+            border: none;
+            color: #1ed760;
+            font-size: 16px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            transition: all 0.3s ease;
+        }
+        
+        .nav-back:hover {
+            transform: translateX(-5px);
+        }
+        
+        /* Responsive adjustments */
+        @media (max-width: 576px) {
+            .profile-container {
+                padding: 20px;
+            }
+            
+            .profile-image-container {
+                width: 150px;
+                height: 150px;
+            }
+            
+            .detail-item {
+                flex-direction: column;
+                gap: 5px;
+            }
+            
+            .detail-label {
+                width: 100%;
+            }
+        }
+
+        /* Add this to your existing CSS styles */
+        .username-display {
+            text-align: center;
+            margin-top: 15px;
+        }
+
+        .username-display h3 {
+            color: #1ed760;
+            font-size: 22px;
+            font-weight: 600;
+            margin: 0;
+            padding: 0;
+        }
+
+        /* Enhance the profile image section */
+        .profile-image-section {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background-color: rgba(10, 39, 30, 0.5);
+            border-radius: 8px;
+            padding: 20px;
+            text-align: center;
+        }
+
+        /* Make the name stand out */
+        #fullName {
+            font-weight: 600;
+            font-size: 18px;
+            color: white;
+        }
+
+        /* Make the profile section more compact on smaller screens */
+        @media (max-width: 768px) {
+            .profile-content {
+                grid-template-columns: 1fr;
+            }
+            
+            .profile-image-section {
+                margin-bottom: 20px;
+            }
+        }
+
+        /* Add these styles to your existing CSS in the head section */
+        .password-field {
+            position: relative;
+            display: flex;
+            align-items: center;
+        }
+
+        .password-field input {
+            flex: 1;
+            padding-right: 40px; /* Make room for the eye icon */
+        }
+
+        .toggle-password {
+            position: absolute;
+            right: 10px;
+            background: none;
+            border: none;
+            color: #a7a7a7;
+            cursor: pointer;
+            font-size: 16px;
+            transition: color 0.3s ease;
+            padding: 5px;
+        }
+
+        .toggle-password:hover {
+            color: #1ed760;
+        }
+
+        .toggle-password:focus {
+            outline: none;
+        }
+
+        /* Style for when password is visible */
+        .toggle-password.showing i.fa-eye {
+            color: #1ed760;
+        }
+
+        /* Make sure the status message is visible when provided from the server */
+        .status-message {
+            padding: 15px;
+            border-radius: 4px;
+            margin-bottom: 20px;
+        }
+
+        .status-message.success {
+            display: block;
+            background-color: rgba(30, 215, 96, 0.1);
+            border: 1px solid #1ed760;
+            color: #1ed760;
+        }
+
+        .status-message.error {
+            display: block;
+            background-color: rgba(255, 77, 77, 0.1);
+            border: 1px solid #ff4d4d;
+            color: #ff4d4d;
+        }
+    </style>
+</head>
+<body>
+    <button class="nav-back" onclick="window.history.back()">
+        <i class="fas fa-arrow-left"></i> Back
+    </button>
+    
+    <div class="profile-container">
+        <div class="profile-header">
+            <h1>Your Profile</h1>
+            <p>Manage your personal information and account settings</p>
+        </div>
+        
+        <div class="profile-content">
+            <div class="profile-image-section">
+                <div class="profile-image-container">
+                    <img id="profileImage" 
+                         src="{% if user.profile_image %}{{ user.profile_image_url }}{% else %}{% static 'images/profile.png' %}{% endif %}" 
+                         alt="Profile Image" 
+                         class="profile-image">
+                    <div class="edit-buttons">
+                        <button class="edit-button" onclick="openUploadModal()" title="Change Profile Picture">
+                            <i class="fas fa-camera"></i>
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Add username display under profile image -->
+                <div class="username-display">
+                    <h3>@{{ user.username }}</h3>
+                </div>
+            </div>
+            
+            <div class="user-details">
+                <h2>Personal Information</h2>
+                
+                <!-- Combined name field -->
+                <div class="detail-item">
+                    <div class="detail-label">Name</div>
+                    <div class="detail-value" id="fullName">{{ user.fname }} {{ user.lname }}</div>
+                </div>
+                
+                <div class="detail-item">
+                    <div class="detail-label">Email</div>
+                    <div class="detail-value" id="email">{{ user.email }}</div>
+                </div>
+                <div class="detail-item">
+                    <div class="detail-label">Phone</div>
+                    <div class="detail-value" id="phone">{{ user.phone }}</div>
+                </div>
+            </div>
+            
+            <div class="change-password">
+                <h2>Change Password</h2>
+                <div id="passwordStatus" class="status-message"></div>
+                <form class="password-form" id="passwordForm" method="POST" action="{% url 'profile' %}">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="update_password">
+                    <div class="form-group">
+                        <label for="currentPassword">Current Password</label>
+                        <div class="password-field">
+                            <input type="password" id="currentPassword" name="currentPassword" required>
+                            <button type="button" class="toggle-password" onclick="togglePasswordVisibility('currentPassword')">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="newPassword">New Password</label>
+                        <div class="password-field">
+                            <input type="password" id="newPassword" name="newPassword" required>
+                            <button type="button" class="toggle-password" onclick="togglePasswordVisibility('newPassword')">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="confirmPassword">Confirm New Password</label>
+                        <div class="password-field">
+                            <input type="password" id="confirmPassword" name="confirmPassword" required>
+                            <button type="button" class="toggle-password" onclick="togglePasswordVisibility('confirmPassword')">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="form-actions">
+                        <button type="submit" class="save-button">Update Password</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Upload Image Modal -->
+    <div class="modal" id="uploadModal">
+        <div class="modal-content">
+            <button class="modal-close" onclick="closeUploadModal()">
+                <i class="fas fa-times"></i>
+            </button>
+            <div class="modal-header">
+                <h3>Update Profile Picture</h3>
+            </div>
+            <div id="uploadStatus" class="status-message"></div>
+            <form id="uploadForm" method="POST" action="{% url 'profile' %}" enctype="multipart/form-data">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="update_image">
+                <div class="upload-area" onclick="triggerFileInput()">
+                    <input type="file" id="imageUpload" accept="image/*" style="display: none;" onchange="previewImage()">
+                    <i class="fas fa-cloud-upload-alt"></i>
+                    <p>Click to select a file or drag and drop</p>
+                    <p class="file-info" id="fileInfo">Selected file: <span id="fileName"></span></p>
+                    <img id="imagePreview" style="max-width: 100%; max-height: 200px; display: none; margin-top: 15px; border-radius: 5px;">
+                </div>
+                <div class="upload-actions">
+                    <button type="button" class="cancel-button" onclick="closeUploadModal()">Cancel</button>
+                    <button type="submit" class="upload-button">Upload Picture</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    {% if message %}
+    <div class="status-message {{ message_type }}">{{ message }}</div>
+    {% endif %}
+    
+    <script>
+        // DOM Elements
+        const profileImage = document.getElementById('profileImage');
+        const uploadModal = document.getElementById('uploadModal');
+        const imageUpload = document.getElementById('imageUpload');
+        const imagePreview = document.getElementById('imagePreview');
+        const fileName = document.getElementById('fileName');
+        const fileInfo = document.querySelector('.file-info');
+        const uploadForm = document.getElementById('uploadForm');
+        const passwordForm = document.getElementById('passwordForm');
+        const uploadStatus = document.getElementById('uploadStatus');
+        const passwordStatus = document.getElementById('passwordStatus');
+        
+        // Load user data from backend
+        document.addEventListener('DOMContentLoaded', () => {
+            // This would normally fetch data from your backend
+            // For now we'll use placeholder data
+            loadUserData();
+        });
+        
+        function loadUserData() {
+            // The user data is already loaded by Django in the HTML template
+            // This function is just to handle any additional JavaScript initialization
+            
+            // Make sure profile image is valid
+            const profileImg = document.getElementById('profileImage');
+            profileImg.onerror = function() {
+                // If image fails to load, use the default
+                this.src = "{% static 'images/profile.png' %}";
+            };
+        }
+        
+        // Modal functions
+        function openUploadModal() {
+            uploadModal.classList.add('active');
+            // Reset form and preview
+            uploadForm.reset();
+            imagePreview.style.display = 'none';
+            fileInfo.style.display = 'none';
+            uploadStatus.style.display = 'none';
+            uploadStatus.textContent = '';
+            uploadStatus.className = 'status-message';
+        }
+        
+        function closeUploadModal() {
+            uploadModal.classList.remove('active');
+        }
+        
+        function triggerFileInput() {
+            imageUpload.click();
+        }
+        
+        function previewImage() {
+            const file = imageUpload.files[0];
+            if (file) {
+                fileName.textContent = file.name;
+                fileInfo.style.display = 'block';
+                
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    imagePreview.src = e.target.result;
+                    imagePreview.style.display = 'block';
+                }
+                reader.readAsDataURL(file);
+            }
+        }
+        
+        // Handle drop events for drag-and-drop functionality
+        const uploadArea = document.querySelector('.upload-area');
+        
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+            uploadArea.addEventListener(eventName, preventDefaults, false);
+        });
+        
+        function preventDefaults(e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+        
+        ['dragenter', 'dragover'].forEach(eventName => {
+            uploadArea.addEventListener(eventName, highlight, false);
+        });
+        
+        ['dragleave', 'drop'].forEach(eventName => {
+            uploadArea.addEventListener(eventName, unhighlight, false);
+        });
+        
+        function highlight() {
+            uploadArea.style.borderColor = '#1ed760';
+            uploadArea.style.backgroundColor = 'rgba(30, 215, 96, 0.05)';
+        }
+        
+        function unhighlight() {
+            uploadArea.style.borderColor = '#1a3932';
+            uploadArea.style.backgroundColor = 'transparent';
+        }
+        
+        uploadArea.addEventListener('drop', handleDrop, false);
+        
+        function handleDrop(e) {
+            const dt = e.dataTransfer;
+            const files = dt.files;
+            
+            if (files.length) {
+                imageUpload.files = files;
+                previewImage();
+            }
+        }
+        
+        // Form submissions
+        uploadForm.addEventListener('submit', function(e) {
+            const file = imageUpload.files[0];
+            if (!file) {
+                e.preventDefault(); // Prevent form submission
+                showUploadStatus('Please select an image to upload.', 'error');
+                return;
+            }
+            
+            // Check file type
+            if (!file.type.match('image.*')) {
+                e.preventDefault(); // Prevent form submission
+                showUploadStatus('Please select a valid image file.', 'error');
+                return;
+            }
+            
+            // Let the form submit normally as we've set up the form with the proper action and enctype
+        });
+        
+        passwordForm.addEventListener('submit', function(e) {
+            const currentPassword = document.getElementById('currentPassword').value;
+            const newPassword = document.getElementById('newPassword').value;
+            const confirmPassword = document.getElementById('confirmPassword').value;
+            
+            if (!currentPassword || !newPassword || !confirmPassword) {
+                e.preventDefault(); // Prevent form submission
+                showPasswordStatus('All fields are required.', 'error');
+                return;
+            }
+            
+            if (newPassword !== confirmPassword) {
+                e.preventDefault(); // Prevent form submission
+                showPasswordStatus('New passwords do not match.', 'error');
+                return;
+            }
+            
+            // If we get here, let the form submit normally
+        });
+        
+        function showUploadStatus(message, type) {
+            uploadStatus.textContent = message;
+            uploadStatus.className = `status-message ${type}`;
+            uploadStatus.style.display = 'block';
+        }
+        
+        function showPasswordStatus(message, type) {
+            passwordStatus.textContent = message;
+            passwordStatus.className = `status-message ${type}`;
+            passwordStatus.style.display = 'block';
+            
+            // Automatically hide success messages after 5 seconds
+            if (type === 'success') {
+                setTimeout(() => {
+                    passwordStatus.style.display = 'none';
+                }, 5000);
+            }
+        }
+        
+        // Example of how to integrate with Django templates
+        // In a real implementation, you would replace the placeholder data with template variables
+        // 
+        // document.getElementById('username').textContent = "{{ user.username }}";
+        // document.getElementById('firstName').textContent = "{{ user.fname }}";
+        // document.getElementById('lastName').textContent = "{{ user.lname }}";
+        // document.getElementById('email').textContent = "{{ user.email }}";
+        // document.getElementById('phone').textContent = "{{ user.phone }}";
+        // 
+        // if ("{{ user.profile_image_url }}") {
+        //   profileImage.src = "{{ user.profile_image_url }}";
+        // }
+
+        // Add this to your existing JavaScript section
+        function togglePasswordVisibility(inputId) {
+            const passwordInput = document.getElementById(inputId);
+            const toggleBtn = event.currentTarget;
+            const icon = toggleBtn.querySelector('i');
+            
+            if (passwordInput.type === 'password') {
+                passwordInput.type = 'text';
+                icon.classList.remove('fa-eye');
+                icon.classList.add('fa-eye-slash');
+                toggleBtn.classList.add('showing');
+            } else {
+                passwordInput.type = 'password';
+                icon.classList.remove('fa-eye-slash');
+                icon.classList.add('fa-eye');
+                toggleBtn.classList.remove('showing');
+            }
+        }
+
+        // Update the message display behavior to show server messages correctly
+        document.addEventListener('DOMContentLoaded', function() {
+            // Check if there's a server message and make sure it's visible
+            const serverMessage = document.querySelector('.status-message.success, .status-message.error');
+            if (serverMessage) {
+                serverMessage.style.display = 'block';
+                
+                // Auto-hide success messages after 5 seconds
+                if (serverMessage.classList.contains('success')) {
+                    setTimeout(() => {
+                        serverMessage.style.display = 'none';
+                    }, 5000);
+                }
+            }
+        });
+    </script>
+</body>
+</html>

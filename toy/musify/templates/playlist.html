@@ -1,0 +1,186 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ playlist.name }} - Musify</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link rel="stylesheet" href="{% static 'css/style_home.css' %}">
+    <link rel="stylesheet" href="/static/css/playlist_style.css">
+    
+</head>
+
+
+<body>
+    <aside class="sidebar">
+        <div>
+            <i class="fas fa-music"></i>
+            <span style="font-weight: bolder; font-size: 20px;">Musify</span>
+        </div>
+        
+        <nav>
+            <a href="/musify/home" class="nav-item">
+                <span>🏠</span>
+                Home
+            </a>
+            <a href="/musify/up_music" class="nav-item">
+                <span>📤</span>
+                Upload Music
+            </a>
+            <a href="/musify/playlist/" class="nav-item active">
+                <span>📚</span>
+                Your Library
+            </a>
+        </nav>
+        <div class="playlists">
+            <div class="playlists-header">
+                <h3>Your Playlists</h3>
+                <button class="expand-btn" id="create-playlist-btn" title="Create new playlist">+</button>
+            </div>
+            <div id="user-playlists">
+                <!-- Playlists will be loaded here -->
+            </div>
+        </div>
+        
+    </aside>
+    <main class="main-content">
+        <header class="header">
+            <input type="search" class="search-bar" id="searchInput" placeholder="Search songs...">
+            <div class="header-right">
+                <button class="notification-btn">🔔</button>
+                <button class="profile-btn" onclick="toggleProfilePopup()">
+                    <img src="{% static 'images/profile.png' %}" alt="Profile" style="width: 30px; height: 30px; border-radius: 50%;">
+                </button>
+            </div>
+        </header>
+        <header class="page-header">
+            <h1>{{ playlist.name }}</h1>
+            <button class="add-songs-btn" onclick="openAddSongsModal()">
+                <div class="add-songs-btn-content">
+                    <i class="fas fa-music"></i>
+                    <span>Add Songs</span>
+                    <i class="fas fa-plus-circle"></i>
+                </div>
+            </button>
+        </header>
+        
+        <div class="search-container">
+            <input type="text" id="searchInput" placeholder="Search in playlist...">
+        </div>
+        
+        <div class="songs-container">
+            <div class="songs-grid" id="playlist-songs-grid">
+                <!-- Songs will be loaded here -->
+            </div>
+        </div>
+    </main>
+
+    <!-- Profile Popup -->
+    <div class="profile-popup hidden" id="profilePopup">
+      <ul>
+        <li><a href="/musify/profile">View Profile</a></li>
+        <li><a href="#">Settings</a></li>
+        <li>
+          <a href="/musify/login" onclick="event.preventDefault(); confirmLogout();">
+            Logout
+          </a>
+        </li>
+      </ul>
+    </div>
+
+    <!-- Add Songs Modal -->
+    <div class="modal" id="addSongsModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Add Songs to "{{ playlist.name }}"</h2>
+                <button class="modal-close" onclick="closeAddSongsModal()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <input type="search" class="search-bar" id="modalSearchInput" placeholder="Search songs to add...">
+            <div class="songs-list" id="available-songs">
+                <!-- Available songs will be loaded here -->
+            </div>
+        </div>
+    </div>
+    
+    <!-- Create Playlist Modal -->
+    <div class="modal" id="createPlaylistModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Create New Playlist</h2>
+                <button class="modal-close" onclick="closeCreatePlaylistModal()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <form id="createPlaylistForm">
+                <div style="margin-bottom: 20px;">
+                    <label for="playlistName" style="display: block; margin-bottom: 8px; color: #a7a7a7;">Playlist Name</label>
+                    <input type="text" id="playlistName" placeholder="Enter playlist name" style="width: 100%; padding: 10px; background-color: #1a2922; border: 1px solid #2c4c4c; border-radius: 4px; color: white;">
+                </div>
+                <button type="submit" style="background-color: #1ed760; color: #041410; border: none; border-radius: 4px; padding: 12px; width: 100%; font-weight: 600; cursor: pointer;">
+                    Create Playlist
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Music Player -->
+    <div class="music-player" id="music-player">
+        <div class="song-info">
+            <img id="current-song-cover" class="current-song-cover" src="{% static 'images/default-album.jpg' %}" alt="Album Cover">
+            <div class="song-text">
+                <h3 id="current-song-title">Select a song</h3>
+                <p id="current-song-artist">Artist</p>
+            </div>
+        </div>
+
+        <div class="controls">
+            <button class="prev-btn" onclick="prevSong()" title="Previous">
+                <i class="fas fa-step-backward"></i>
+            </button>
+
+            <button 
+                class="play-pause-btn paused" 
+                id="playPauseBtn"
+                onclick="togglePlayPause()"
+            >
+                <span class="play-pause-icon"></span>
+            </button>
+
+            <button class="next-btn" onclick="nextSong()" title="Next">
+                <i class="fas fa-step-forward"></i>
+            </button>
+        </div>
+        <div class="timeline">
+            <input type="range" id="song-progress" value="0" max="100">
+            <div class="time-info">
+                <span id="current-time">0:00</span>
+                <span id="total-time">0:00</span>
+            </div>
+        </div>
+        <div class="play-mode-controls">
+            <button class="mode-btn" id="shuffleBtn" onclick="toggleShuffle()" title="Shuffle">
+                <i class="fas fa-random"></i>
+            </button>
+        </div>
+
+        <div class="volume-control">
+            <button class="volume-btn" id="volumeBtn" onclick="toggleMute()">
+                <i class="fas fa-volume-up"></i>
+            </button>
+            <input type="range" class="volume-slider" id="volumeSlider" min="0" max="100" value="100">
+        </div>
+        <button class="minimize-btn" onclick="toggleMinimizePlayer()">
+            <i class="fas fa-chevron-left"></i>
+        </button>
+        <audio id="audio-player" src=""></audio>
+    </div>
+    
+    <!-- Toast Notification -->
+    <div class="toast" id="toast"></div>
+    
+    <script src="/static/js/playlist_script.js"></script>
+</body>
+</html>

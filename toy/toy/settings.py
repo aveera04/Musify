@@ -31,15 +31,15 @@ AWS_DEFAULT_ACL = None
 AWS_S3_VERIFY = True
 
 # CloudFront settings
-CLOUDFRONT_DOMAIN = 'd3t799rwj17rbr.cloudfront.net'
-AWS_S3_CUSTOM_DOMAIN = CLOUDFRONT_DOMAIN
 
-# Storage settings
+AWS_S3_CUSTOM_DOMAIN = os.getenv('CLOUDFRONT_DOMAIN')
+
+# Storage settingsos
 DEFAULT_FILE_STORAGE = 'storages.backends.s3boto3.S3Boto3Storage'
 STATICFILES_STORAGE = 'storages.backends.s3boto3.S3StaticStorage'
 
 # Media URL through CloudFront
-MEDIA_URL = f'https://{CLOUDFRONT_DOMAIN}/'
+MEDIA_URL = f'https://{os.getenv('CLOUDFRONT_DOMAIN')}/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
 # Performance optimizations
@@ -114,6 +114,7 @@ TEMPLATES = [
                 'django.template.context_processors.debug',
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
+                'django.template.context_processors.static',
                 'django.contrib.messages.context_processors.messages',
             ],
         },
@@ -175,7 +176,10 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.1/howto/static-files/
 
-STATIC_URL = 'static/'
+STATIC_URL = '/static/'
+STATICFILES_DIRS = [
+    os.path.join(BASE_DIR, 'musify/static'),
+]
 
 
 # Default primary key field type
