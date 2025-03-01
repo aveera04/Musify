@@ -3,12 +3,12 @@ const audioPlayer = document.getElementById('audio-player');
 const songProgress = document.getElementById('song-progress');
 const currentTimeElem = document.getElementById('current-time');
 const totalTimeElem = document.getElementById('total-time');
-let currentSongIndex = 0;
-let songs = [];
-let allAvailableSongs = [];
-let playlistId = "{{ playlist.id|escapejs }}";
-let isShuffled = false;
-let previousVolume = 1;
+// let currentSongIndex = 0;
+// let songs = [];
+// let allAvailableSongs = [];
+// // let playlistId = "{{ playlist.id|escapejs }}";
+// let isShuffled = false;
+// let previousVolume = 1;
 
 // Document ready
 document.addEventListener('DOMContentLoaded', () => {
@@ -228,15 +228,24 @@ async function loadAllSongs() {
 // Add song to playlist
 async function addSongToPlaylist(songId) {
     try {
+        console.log(`Adding song ${songId} to playlist ${playlistId}`);
+        
         // Show loading indicator
         const addButton = event.currentTarget;
         const originalHTML = addButton.innerHTML;
         addButton.disabled = true;
         addButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
         
+        // Only create FormData once
         const formData = new FormData();
         formData.append('playlist_id', playlistId);
         formData.append('song_id', songId);
+        
+        // Add some console logging to help debug
+        console.log('Sending request with data:', {
+            'playlist_id': playlistId, 
+            'song_id': songId
+        });
         
         const response = await fetch('/musify/add_to_playlist/', {
             method: 'POST',
@@ -246,7 +255,10 @@ async function addSongToPlaylist(songId) {
             body: formData
         });
         
+        // Log raw response
+        console.log('Raw response status:', response.status);
         const data = await response.json();
+        console.log('Response data:', data);
         
         if (data.status === 'success') {
             // Change button to checkmark
@@ -270,32 +282,41 @@ async function addSongToPlaylist(songId) {
         }
     } catch (error) {
         console.error('Error adding song to playlist:', error);
-        showToast('Error adding song to playlist', 'error');
-        // Restore button
-        const addButton = event.currentTarget;
-        addButton.innerHTML = '<i class="fas fa-plus"></i>';
-        addButton.disabled = false;
+        
+        // Safely restore button if it exists
+        try {
+            if (event && event.currentTarget) {
+                const addButton = event.currentTarget;
+                addButton.innerHTML = '<i class="fas fa-plus"></i>';
+                addButton.disabled = false;
+            }
+        } catch (e) {
+            console.error('Could not restore button:', e);
+        }
+        
+        showToast('Error adding song to playlist: ' + error.message, 'error');
     }
 }
 
-// Remove song from playlist
+// Fix the removeSong function
 async function removeSong(songId) {
     try {
+        const formData = new FormData();
+        formData.append('playlist_id', playlistId);
+        formData.append('song_id', songId);
+        
         const response = await fetch('/musify/remove_from_playlist/', {
             method: 'POST',
             headers: {
-                'Content-Type': 'application/json',
                 'X-CSRFToken': getCookie('csrftoken')
             },
-            body: JSON.stringify({
-                playlist_id: playlistId,
-                song_id: songId
-            })
+            body: formData
         });
         
         const data = await response.json();
+        console.log('Remove song response:', data);
         
-        if (data.success) {
+        if (data.status === 'success') {  // Check status instead of success
             showToast('Song removed from playlist');
             
             // Remove the song from the local array
@@ -314,7 +335,7 @@ async function removeSong(songId) {
                 stopPlayback();
             }
         } else {
-            showToast(data.error || 'Failed to remove song', 'error');
+            showToast(data.message || 'Failed to remove song', 'error');
         }
     } catch (error) {
         console.error('Error removing song from playlist:', error);
@@ -396,9 +417,28 @@ function nextSong() {
     }
 }
 
-// Play previous song
+// Fix the prevSong function - it's currently a duplicate of toggleMute!
 function prevSong() {
     if (songs.length > 0) {
+        let prevIndex;
+        if (isShuffled) {
+            // Play a random song if shuffle is on
+            prevIndex = Math.floor(Math.random() * songs.length);
+        } else {
+            // Play previous song in order
+            prevIndex = (currentSongIndex - 1 + songs.length) % songs.length;
+        }
+        playSong(prevIndex);
+    }
+}
+
+// Add a proper toggleMute function
+function toggleMute() {
+    const volumeBtn = document.getElementById('volumeBtn');
+    const volumeSlider = document.getElementById('volumeSlider');
+    
+    if (audioPlayer.volume > 0) {
+        previousVolume = audioPlayer.volume;
         audioPlayer.volume = 0;
         volumeSlider.value = 0;
         volumeBtn.innerHTML = '<i class="fas fa-volume-mute"></i>';

@@ -180,6 +180,19 @@
     
     <!-- Toast Notification -->
     <div class="toast" id="toast"></div>
+    <script>
+        // Initialize playlist ID as a number (not a string)
+        const playlistId = "{{ playlist.id }}";  // Enclosed in quotes
+        
+        // Log to verify the proper value
+        console.log("Playlist ID:", playlistId, typeof playlistId);
+        
+        // Other key variables
+        let songs = [];
+        let currentSongIndex = 0;
+        let isShuffled = false;
+        let previousVolume = 1;
+    </script>
     
     <script src="/static/js/playlist_script.js"></script>
 </body>
