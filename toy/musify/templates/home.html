@@ -313,6 +313,15 @@
             try {
                 const songIndex = songs.findIndex(song => song.name === name && song.artist === artist);
                 if (songIndex !== -1) {
+                    // Remove playing class from all cards
+                    document.querySelectorAll('.song-card').forEach(card => {
+                        card.classList.remove('playing');
+                    });
+                    
+                    // Add playing class to the current song card
+                    const songCards = document.querySelectorAll('.song-card');
+                    songCards[songIndex].classList.add('playing');
+                    
                     currentSongIndex = songIndex;
                     const song = songs[currentSongIndex];
                     

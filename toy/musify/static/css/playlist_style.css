@@ -462,7 +462,7 @@
     transform: scale(1.1);
 }
 
-.song-info {
+.song-card .song-info {
     padding: 16px;
     flex-grow: 1;
     display: flex;
@@ -526,4 +526,49 @@
     opacity: 1;
     transform: translateY(0);
     pointer-events: all;
+}
+
+/* Update the music player specific styles */
+.music-player .song-info {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 12px;
+    width: 300px;
+    padding: 10px;
+    background: transparent;
+}
+
+.music-player .current-song-cover {
+    width: 48px;
+    height: 48px;
+    border-radius: 4px;
+    object-fit: cover;
+    flex-shrink: 0;
+}
+
+.music-player .song-text {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    padding: 0;
+}
+
+.music-player .song-text h3 {
+    margin: 0;
+    font-size: 14px;
+    font-weight: 600;
+    color: white;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.music-player .song-text p {
+    margin: 4px 0 0;
+    font-size: 12px;
+    color: #a7a7a7;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
