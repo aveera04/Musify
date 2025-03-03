@@ -84,10 +84,108 @@
       </ul>
     </div>
 
+    <!-- Update your music-player div -->
+<div class="music-player" id="music-player">
+    <div class="song-info">
+        <img id="current-song-cover" class="current-song-cover" src="{% static 'images/default-album.jpg' %}" alt="Album Cover">
+        <div class="song-text">
+            <h3 id="current-song-title">Select a song</h3>
+            <p id="current-song-artist">Artist</p>
+        </div>
+    </div>
+
+    
+
+    <div class="controls">
+        <button class="prev-btn" onclick="prevSong()" title="Previous">
+            <i class="fas fa-step-backward"></i>
+        </button>
+
+        <button 
+            class="play-pause-btn paused" 
+            id="playPauseBtn"
+            onclick="togglePlayPause()"
+        >
+            <span class="play-pause-icon"></span>
+        </button>
+
+        <button class="next-btn" onclick="nextSong()" title="Next">
+            <i class="fas fa-step-forward"></i>
+        </button>
+    </div>
+    <div class="timeline">
+        <input type="range" id="song-progress" value="0" max="100">
+        <div class="time-info">
+            <span id="current-time">0:00</span>
+            <span id="total-time">0:00</span>
+        </div>
+    </div>
+    <div class="play-mode-controls">
+        <button class="mode-btn" id="shuffleBtn" onclick="toggleShuffle()" title="Shuffle">
+            <i class="fas fa-random"></i>
+        </button>
+        <!-- <button class="mode-btn" id="loopBtn" onclick="toggleLoop()" title="Loop">
+            <i class="fas fa-redo"></i>
+        </button> -->
+    </div>
+
+    <div class="volume-control">
+        <button class="volume-btn" id="volumeBtn" onclick="toggleMute()">
+            <i class="fas fa-volume-up"></i>
+        </button>
+        <input type="range" class="volume-slider" id="volumeSlider" min="0" max="100" value="100">
+    </div>
+    <button class="minimize-btn" onclick="toggleMinimizePlayer()">
+        <i class="fas fa-chevron-left"></i>
+    </button>
+    <audio id="audio-player" src=""></audio>
+</div>
+
     <script>
         // Initialize audio player first
+        const audioPlayer = document.getElementById('audio-player');
+        const songProgress = document.getElementById('song-progress');
+        const currentTimeElem = document.getElementById('current-time');
+        const totalTimeElem = document.getElementById('total-time');
         let currentSongIndex = 0;
         let songs = [];
+
+        // Add audio player event listeners
+        // audioPlayer.addEventListener('error', (e) => {
+        //     console.error('Audio player error:', e.target.error);
+        //     alert('Error playing audio. Please try refreshing the page.');
+        // });
+
+        audioPlayer.addEventListener('loadstart', () => {
+            console.log('Started loading audio');
+        });
+
+        audioPlayer.addEventListener('canplay', () => {
+            console.log('Audio can start playing');
+        });
+
+        // Add this after audioPlayer initialization
+        // audioPlayer.addEventListener('error', (e) => {
+        //     console.error('Audio player error:', e.target.error);
+        //     if (e.target.error.code === 4) {
+        //         console.error('Format not supported');
+        //         alert('This audio format is not supported by your browser. Try converting to MP3.');
+        //     } else {
+        //         alert('Error playing audio. Please try refreshing the page.');
+        //     }
+        // });
+
+        audioPlayer.addEventListener('loadeddata', () => {
+            console.log('Audio data loaded successfully');
+        });
+
+        audioPlayer.addEventListener('stalled', () => {
+            console.log('Audio download has stalled');
+        });
+
+        audioPlayer.addEventListener('waiting', () => {
+            console.log('Audio is waiting for data');
+        });
 
         // Navigation handling
         document.querySelectorAll('.nav-item').forEach(item => {
@@ -178,18 +276,9 @@
                     return;
                 }
                 
-                if (data.songs && data.songs.length > 0) {
-                    songs = data.songs;
-                    
-                    // Add songs to global player
-                    if (window.MusicPlayer && typeof window.MusicPlayer.addSongs === 'function') {
-                        window.MusicPlayer.addSongs(songs);
-                        console.log('Songs added to persistent player');
-                    }
-                    
-                    console.log('Songs loaded:', songs);
-                    populateSongsGrid();
-                }
+                songs = data.songs;
+                console.log('Songs loaded:', songs);
+                populateSongsGrid();
                 
             } catch (error) {
                 console.error('Error loading songs:', error);
@@ -198,7 +287,6 @@
             }
         }
 
-        // REPLACE your song card click handler with this one
         function populateSongsGrid() {
             const songsGrid = document.getElementById('songs-grid');
             songsGrid.innerHTML = ''; // Clear existing content
@@ -206,23 +294,12 @@
             songs.forEach(song => {
                 const songCard = document.createElement('div');
                 songCard.className = 'song-card';
-                songCard.dataset.songId = song.id || '';
-                songCard.dataset.songName = song.name;
-                songCard.dataset.songArtist = song.artist;
-                songCard.dataset.songUrl = song.source;
-                
                 songCard.innerHTML = `
                     <img src="${song.cover}" alt="${song.name}">
                     <h3>${song.name}</h3>
                     <p>${song.artist}</p>
-                    <button class="play-btn">▶</button>
+                    <button class="play-btn" onclick="playSong('${song.name}', '${song.artist}')">▶</button>
                 `;
-                
-                // Use a proper event listener instead of onclick attribute
-                songCard.addEventListener('click', function() {
-                    playSong(song.name, song.artist);
-                });
-                
                 songsGrid.appendChild(songCard);
             });
         }
@@ -230,7 +307,8 @@
         // Load songs when the document is ready
         document.addEventListener('DOMContentLoaded', loadSongsFromDatabase);
 
-        // Keep only this function but modify it:
+        // const audioPlayer = document.getElementById('audio-player');
+        // Add error handling to playSong function
         function playSong(name, artist) {
             try {
                 const songIndex = songs.findIndex(song => song.name === name && song.artist === artist);
@@ -253,32 +331,170 @@
                     document.getElementById('current-song-cover').src = song.cover;
                     document.getElementById('music-player').classList.add('active');
                     
-                    // Use the global player
-                    window.MusicPlayer.playSong(null, {
-                        id: song.id,
-                        name: song.name,
-                        title: song.name, 
-                        artist: song.artist,
-                        cover: song.cover,
-                        cover_url: song.cover,
-                        source: song.source,
-                        song_url: song.source
-                    });
+                    // Set audio source and play
+                    audioPlayer.src = song.source;
+                    audioPlayer.load();
                     
-                    // Force show the player
-                    const musicPlayer = document.getElementById('music-player');
-                    if (musicPlayer) {
-                        musicPlayer.classList.add('active');
-                        musicPlayer.style.display = 'flex';
-                        musicPlayer.style.visibility = 'visible';
-                    }
-                } else {
-                    console.error("Song not found:", name, artist);
+                    // Play after a small delay to ensure loading
+                    setTimeout(() => {
+                        audioPlayer.play().catch(error => {
+                            console.error('Error playing song:', error);
+                            // Try alternative URL format if first attempt fails
+                            const alternativeUrl = song.source.replace('export=download', 'export=view');
+                            audioPlayer.src = alternativeUrl;
+                            audioPlayer.load();
+                            audioPlayer.play().catch(err => {
+                                console.error('Error playing song with alternative URL:', err);
+                                alert('Error playing song. Please try again.');
+                            });
+                        });
+                    }, 100);
                 }
             } catch (error) {
-                console.error("Error in playSong:", error);
+                console.error('Error in playSong:', error);
+                alert('Error playing song. Please try again.');
             }
         }
+
+        // Add error handling for audioPlayer
+        document.getElementById('audio-player').addEventListener('error', (e) => {
+            console.error('Audio player error:', e);
+            alert('Error playing the song. Please try again.');
+        });
+
+        // Add smooth transitions when updating song info
+        function updateMusicPlayer() {
+            const song = songs[currentSongIndex];
+            const titleElement = document.getElementById('current-song-title');
+            const artistElement = document.getElementById('current-song-artist');
+            const coverElement = document.getElementById('current-song-cover');
+            const musicPlayer = document.getElementById('music-player');
+            const isMinimized = musicPlayer.classList.contains('minimized');
+            
+            titleElement.style.opacity = '0';
+            artistElement.style.opacity = '0';
+            coverElement.style.opacity = '0';
+            
+            setTimeout(() => {
+                titleElement.textContent = song.name;
+                artistElement.textContent = song.artist;
+                coverElement.src = song.cover;
+                
+                titleElement.style.opacity = '1';
+                artistElement.style.opacity = '1';
+                coverElement.style.opacity = '1';
+                
+                audioPlayer.src = song.source;
+                audioPlayer.load();
+                audioPlayer.play();
+                
+                // Maintain minimized state if it was minimized
+                if (isMinimized) {
+                    musicPlayer.classList.add('minimized');
+                }
+            }, 300);
+        }
+
+        function prevSong() {
+            currentSongIndex = (currentSongIndex - 1 + songs.length) % songs.length;
+            updateMusicPlayer();
+        }
+
+        function nextSong() {
+            if (isShuffled) {
+                const randomIndex = Math.floor(Math.random() * songs.length);
+                currentSongIndex = randomIndex;
+            } else {
+                currentSongIndex = (currentSongIndex + 1) % songs.length;
+            }
+            updateMusicPlayer();
+        }
+
+        const playPauseBtn = document.getElementById('playPauseBtn');
+
+        function togglePlayPause() {
+            if (audioPlayer.paused) {
+                audioPlayer.play();
+                playPauseBtn.classList.remove('paused');
+                playPauseBtn.classList.add('playing');
+            } else {
+                audioPlayer.pause();
+                playPauseBtn.classList.remove('playing');
+                playPauseBtn.classList.add('paused');
+            }
+        }
+
+        audioPlayer.addEventListener('timeupdate', () => {
+            const currentTime = audioPlayer.currentTime;
+            const duration = audioPlayer.duration;
+            const percentage = (currentTime / duration) * 100;
+            
+            // Update slider value and background color in one go
+            songProgress.value = percentage;
+            songProgress.style.background = `linear-gradient(to right, #1ed760 0%, #1ed760 ${percentage}%, rgba(255, 255, 255, 0.1) ${percentage}%, rgba(255, 255, 255, 0.1) 100%)`;
+            
+            currentTimeElem.textContent = formatTime(currentTime);
+            totalTimeElem.textContent = formatTime(duration);
+        });
+
+        songProgress.addEventListener('input', (e) => {
+            const percentage = e.target.value;
+            const duration = audioPlayer.duration;
+            
+            // Update time and background color immediately
+            audioPlayer.currentTime = (percentage / 100) * duration;
+            songProgress.style.background = `linear-gradient(to right, #1ed760 0%, #1ed760 ${percentage}%, rgba(255, 255, 255, 0.1) ${percentage}%, rgba(255, 255, 255, 0.1) 100%)`;
+        });
+
+        // Add this new event listener for smoother dragging
+        songProgress.addEventListener('mousedown', () => {
+            // Pause audio updates while dragging
+            audioPlayer.removeEventListener('timeupdate', updateProgress);
+        });
+
+        songProgress.addEventListener('mouseup', () => {
+            // Resume audio updates after dragging
+            audioPlayer.addEventListener('timeupdate', updateProgress);
+        });
+
+        // Create a separate function for the progress update
+        function updateProgress() {
+            const currentTime = audioPlayer.currentTime;
+            const duration = audioPlayer.duration;
+            const percentage = (currentTime / duration) * 100;
+            
+            songProgress.value = percentage;
+            songProgress.style.background = `linear-gradient(to right, #1ed760 0%, #1ed760 ${percentage}%, rgba(255, 255, 255, 0.1) ${percentage}%, rgba(255, 255, 255, 0.1) 100%)`;
+            
+            currentTimeElem.textContent = formatTime(currentTime);
+            totalTimeElem.textContent = formatTime(duration);
+        }
+
+        function formatTime(seconds) {
+            const minutes = Math.floor(seconds / 60);
+            const secs = Math.floor(seconds % 60);
+            return `${minutes}:${secs < 10 ? '0' : ''}${secs}`;
+        }
+
+        audioPlayer.addEventListener('play', () => {
+            playPauseBtn.classList.remove('paused');
+            playPauseBtn.classList.add('playing');
+        });
+        audioPlayer.addEventListener('pause', () => {
+            playPauseBtn.classList.remove('playing');
+            playPauseBtn.classList.add('paused');
+        });
+
+        // Add animation to next/prev buttons when clicked
+        document.querySelector('.prev-btn').addEventListener('click', function() {
+            this.style.animation = 'pulse 0.3s ease';
+            setTimeout(() => this.style.animation = '', 300);
+        });
+
+        document.querySelector('.next-btn').addEventListener('click', function() {
+            this.style.animation = 'pulse 0.3s ease';
+            setTimeout(() => this.style.animation = '', 300);
+        });
 
         // Dynamically add songs to the grid
         const songsGrid = document.getElementById('songs-grid');
@@ -315,30 +531,155 @@
                 window.location.href = "login";
             }
         }
-    </script>
-    <!-- Add this to your script section -->
-    <script>
-        // Replace the duplicate DOMContentLoaded event listeners with this single one
-        document.addEventListener('DOMContentLoaded', function() {
-            // Load songs first
-            loadSongsFromDatabase();
+
+        // Add these to your existing script section
+        let isShuffled = false;
+        let isLooped = false;
+        let previousVolume = 1;
+
+        // Volume control
+        const volumeBtn = document.getElementById('volumeBtn');
+        const volumeSlider = document.getElementById('volumeSlider');
+
+        volumeSlider.addEventListener('input', (e) => {
+            const volume = e.target.value / 100;
+            audioPlayer.volume = volume;
+            updateVolumeIcon(volume);
+            previousVolume = volume;
+        });
+
+        function updateVolumeIcon(volume) {
+            const icon = volumeBtn.querySelector('i');
+            icon.className = 'fas';
             
-            // Connect to the persistent player
-            setTimeout(() => {
-                if (window.MusicPlayer && typeof window.MusicPlayer.connectPlaylist === 'function') {
-                    console.log("Connecting home page to persistent player");
-                    window.MusicPlayer.connectPlaylist();
-                } else {
-                    console.error("Persistent music player not available");
-                    
-                    // Debug info
-                    console.log("Available on window:", Object.keys(window).filter(key => key.includes('Music')));
-                    console.log("MusicPlayer defined:", typeof window.MusicPlayer);
-                    if (window.MusicPlayer) {
-                        console.log("MusicPlayer methods:", Object.keys(window.MusicPlayer));
-                    }
-                }
-            }, 500);
+            if (volume === 0) {
+                icon.classList.add('fa-volume-mute');
+            } else if (volume < 0.5) {
+                icon.classList.add('fa-volume-down');
+            } else {
+                icon.classList.add('fa-volume-up');
+            }
+        }
+
+        /* Update the toggleMute function in your script section */
+        function toggleMute() {
+            const volumeSlider = document.getElementById('volumeSlider');
+            const icon = volumeBtn.querySelector('i');
+            
+            if (audioPlayer.volume > 0) {
+                // Muting
+                previousVolume = audioPlayer.volume;
+                audioPlayer.volume = 0;
+                volumeSlider.value = 0;
+                volumeSlider.classList.add('muted');
+                icon.className = 'fas fa-volume-mute';
+                volumeSlider.style.background = 'rgba(255, 255, 255, 0.1)';
+            } else {
+                // Unmuting
+                audioPlayer.volume = previousVolume;
+                volumeSlider.value = previousVolume * 100;
+                volumeSlider.classList.remove('muted');
+                updateVolumeIcon(previousVolume);
+                // Restore the green portion
+                volumeSlider.style.background = `linear-gradient(to right, #1ed760 0%, #1ed760 ${previousVolume * 100}%, rgba(255, 255, 255, 0.1) ${previousVolume * 100}%, rgba(255, 255, 255, 0.1) 100%)`;
+            }
+        }
+
+        // Shuffle and Loop functionality
+        function toggleShuffle() {
+            isShuffled = !isShuffled;
+            const shuffleBtn = document.getElementById('shuffleBtn');
+            shuffleBtn.classList.toggle('active');
+        }
+
+        function toggleLoop() {
+            isLooped = !isLooped;
+            const loopBtn = document.getElementById('loopBtn');
+            loopBtn.classList.toggle('active');
+            audioPlayer.loop = isLooped;
+        }
+
+        // Handle song end
+        audioPlayer.addEventListener('ended', () => {
+            if (!isLooped) {
+                nextSong();
+            }
+        });
+
+        // Update timeline progress color
+        audioPlayer.addEventListener('timeupdate', () => {
+            const currentTime = audioPlayer.currentTime;
+            const duration = audioPlayer.duration;
+            const percentage = (currentTime / duration) * 100;
+            songProgress.value = percentage;
+            currentTimeElem.textContent = formatTime(currentTime);
+            totalTimeElem.textContent = formatTime(duration);
+            
+            // Update timeline color
+            songProgress.style.background = `linear-gradient(to right, #1ed760 0%, #1ed760 ${percentage}%, rgba(255, 255, 255, 0.1) ${percentage}%, rgba(255, 255, 255, 0.1) 100%)`;
+        });
+
+        // Update volume slider color
+        volumeSlider.addEventListener('input', (e) => {
+            const volume = e.target.value;
+            audioPlayer.volume = volume / 100;
+            updateVolumeIcon(audioPlayer.volume);
+            previousVolume = audioPlayer.volume;
+            
+            // Update volume slider color
+            volumeSlider.style.background = `linear-gradient(to right, #1ed760 0%, #1ed760 ${volume}%, rgba(255, 255, 255, 0.1) ${volume}%, rgba(255, 255, 255, 0.1) 100%)`;
+        });
+
+        // Initialize volume slider color
+        document.addEventListener('DOMContentLoaded', () => {
+            volumeSlider.style.background = `linear-gradient(to right, #1ed760 0%, #1ed760 100%, rgba(255, 255, 255, 0.1) 100%, rgba(255, 255, 255, 0.1) 100%)`;
+        });
+
+        /* Add this to your script section */
+        function toggleMinimizePlayer() {
+            const musicPlayer = document.getElementById('music-player');
+            const minimizeBtn = document.querySelector('.minimize-btn i');
+            const coverImage = document.getElementById('current-song-cover');
+            
+            musicPlayer.classList.toggle('minimized');
+            
+            if (musicPlayer.classList.contains('minimized')) {
+                minimizeBtn.className = 'fas fa-chevron-up';
+                // Add click event to cover image when minimized
+                coverImage.addEventListener('click', toggleMinimizePlayer);
+            } else {
+                minimizeBtn.className = 'fas fa-chevron-left';
+                // Remove click event when maximized
+                coverImage.removeEventListener('click', toggleMinimizePlayer);
+            }
+        }
+
+        audioPlayer.addEventListener('error', (e) => {
+            console.error('Audio player error:', e.target.error);
+            alert('Error playing audio. Please try refreshing the page.');
+        });
+
+        audioPlayer.addEventListener('loadstart', () => {
+            console.log('Started loading audio');
+        });
+
+        audioPlayer.addEventListener('canplay', () => {
+            console.log('Audio can start playing');
+        });
+
+        // Add these event listeners for better debugging
+        audioPlayer.addEventListener('loadstart', () => {
+            console.log('Started loading audio:', audioPlayer.src);
+        });
+
+        audioPlayer.addEventListener('canplay', () => {
+            console.log('Audio can start playing');
+        });
+
+        audioPlayer.addEventListener('error', (e) => {
+            console.error('Audio player error:', e);
+            console.error('Error code:', audioPlayer.error.code);
+            console.error('Error message:', audioPlayer.error.message);
         });
     </script>
 </body>

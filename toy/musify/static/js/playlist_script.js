@@ -227,7 +227,7 @@ async function loadAllSongs() {
                 <h3>Error loading songs</h3>
                 <p>${error.message}</p>
                 <button onclick="loadAllSongs()" class="retry-btn">
-                    <i class="fas fa-redo"></i>
+                    <i class="fas fa-redo"></i> Try Again
                 </button>
             </div>
         `;
@@ -372,13 +372,7 @@ function playSong(index) {
         
         // Show the music player with animation
         const musicPlayer = document.getElementById('music-player');
-        if (musicPlayer) {
-            musicPlayer.classList.add('active');
-            musicPlayer.style.display = 'flex'; // Force display
-            console.log("Music player activated:", musicPlayer);
-        } else {
-            console.error("Could not find music player element!");
-        }
+        musicPlayer.classList.add('active');
         
         // Play the song
         audioPlayer.play().catch(error => {
