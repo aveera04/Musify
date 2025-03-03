@@ -42,9 +42,17 @@ function navigateToPage(url) {
     loadContent(url, true);
 }
 
-// Load content from a URL
+// Update the loadContent function
+
 async function loadContent(url, addToHistory) {
     try {
+        // Save player state BEFORE fetching
+        const musicPlayerState = saveMusicPlayerStateBeforeNavigation();
+        console.log("Pre-navigation state saved:", !!musicPlayerState);
+        
+        // Show loading indicator
+        showPageLoading();
+        
         const response = await fetch(url);
         if (!response.ok) {
             throw new Error(`HTTP error! Status: ${response.status}`);
@@ -56,9 +64,18 @@ async function loadContent(url, addToHistory) {
         const parser = new DOMParser();
         const doc = parser.parseFromString(html, 'text/html');
         
-        // Get the main content - adjust selector based on your HTML structure
-        const newContent = doc.querySelector('.main-content').innerHTML;
-        document.querySelector('.main-content').innerHTML = newContent;
+        // Save player state before updating content
+        saveMusicPlayerStateBeforeNavigation();
+        
+        // IMPORTANT: Only update the main-content area, not the music player
+        const mainContentOnly = doc.querySelector('.main-content');
+        if (mainContentOnly) {
+            document.querySelector('.main-content').innerHTML = mainContentOnly.innerHTML;
+        } else {
+            console.error('Could not find .main-content in loaded page');
+            // Fall back to body content if main-content not found
+            document.querySelector('.main-content').innerHTML = doc.body.innerHTML;
+        }
         
         // Update page title
         document.title = doc.title;
@@ -71,8 +88,20 @@ async function loadContent(url, addToHistory) {
             window.history.pushState({ url: url }, doc.title, url);
         }
         
+        // After content update but BEFORE running scripts
+        if (musicPlayerState) {
+            console.log("Preserving active player with state:", musicPlayerState);
+        }
+        
         // Re-initialize any page-specific scripts
         initPageScripts();
+        
+        // IMPORTANT: Restore state AFTER scripts are initialized
+        setTimeout(() => {
+            if (musicPlayerState) {
+                restoreMusicPlayerStateAfterNavigation(musicPlayerState);
+            }
+        }, 100);
         
     } catch (error) {
         console.error('Error loading page:', error);
@@ -147,9 +176,28 @@ function updateActiveNavItem(url) {
     });
 }
 
-// Initialize any scripts needed on the new page
+// Update the initPageScripts function
+
 function initPageScripts() {
-    // This function will re-initialize any page-specific functionality
+    console.log("Initializing page scripts after navigation");
+    
+    // Initialize music player immediately if available
+    if (typeof window.initMusicPlayer === 'function') {
+        console.log("Re-initializing music player");
+        window.initMusicPlayer();
+    } else {
+        console.warn("initMusicPlayer function not found");
+        
+        // Try to load it dynamically as fallback
+        const script = document.createElement('script');
+        script.src = "/static/js/music-player.js";
+        script.onload = function() {
+            if (typeof window.initMusicPlayer === 'function') {
+                window.initMusicPlayer();
+            }
+        };
+        document.head.appendChild(script);
+    }
     
     // Example: Re-initialize search functionality
     const searchInput = document.querySelector('.search-bar');
@@ -164,12 +212,66 @@ function initPageScripts() {
         if (typeof window.loadSongs === 'function') {
             window.loadSongs();
         }
+        
+        // Load songs from database on home page
+        if (typeof loadSongsFromDatabase === 'function') {
+            loadSongsFromDatabase();
+        }
     }
     
     // If on playlist page, initialize playlist functionality
     if (window.location.pathname.includes('/playlist/')) {
         if (typeof window.loadPlaylistSongs === 'function') {
             window.loadPlaylistSongs();
+            
+            // Connect playlist's play functions to the music player
+            if (window.MusicPlayer) {
+                window.MusicPlayer.connectPlaylist();
+            }
         }
     }
+}
+
+// Update these functions to have better error handling and debugging
+
+function saveMusicPlayerStateBeforeNavigation() {
+    console.log("Saving music player state before navigation");
+    try {
+        // Save state to localStorage for redundancy
+        if (typeof savePlayerState === 'function') {
+            savePlayerState();
+        }
+        
+        if (window.MusicPlayer && typeof window.MusicPlayer.getState === 'function') {
+            const state = window.MusicPlayer.getState();
+            return state;
+        }
+    } catch (error) {
+        console.error("Error saving music player state:", error);
+    }
+    return null;
+}
+
+// Update the restoreMusicPlayerStateAfterNavigation function
+
+function restoreMusicPlayerStateAfterNavigation(state) {
+    console.log("Restoring music player state after navigation");
+    if (!state) return;
+    
+    setTimeout(() => {
+        if (window.MusicPlayer && typeof window.MusicPlayer.setState === 'function') {
+            window.MusicPlayer.setState(state);
+            
+            // Force player visibility if needed
+            if (state.currentSongData) {
+                const musicPlayer = document.getElementById('music-player');
+                if (musicPlayer) musicPlayer.classList.add('active');
+            }
+        }
+    }, 200); // Short delay to ensure DOM is ready
+    
+    // Add these console logs within restoreMusicPlayerStateAfterNavigation
+    console.log("Music player element exists:", !!document.getElementById('music-player'));
+    console.log("Audio element exists:", !!document.getElementById('audio-player'));
+    console.log("Current songs array:", songs?.length || 0);
 }

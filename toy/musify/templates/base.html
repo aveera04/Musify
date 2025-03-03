@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Musify - Your Music Streaming Platform{% endblock %}</title>
+    
+    <!-- Favicon -->
+    <link rel="shortcut icon" href="/static/images/favicon.ico" type="image/x-icon">
+    
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Base CSS -->
+    <link rel="stylesheet" href="/static/css/base.css">
+    
+    <!-- Music Player CSS -->
+    <link rel="stylesheet" href="/static/css/music-player.css">
+    
+    <!-- Page-specific CSS -->
+    {% block additional_css %}{% endblock %}
+
+    <style>
+    .music-player.active {
+        display: flex !important;
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        background-color: #181818;
+        border-top: 1px solid #282828;
+        padding: 16px;
+        z-index: 1000;
+        opacity: 1;
+        transform: translateY(0);
+        transition: transform 0.3s ease, opacity 0.3s ease;
+    }
+
+    .music-player {
+        display: none;
+        opacity: 0;
+        transform: translateY(100%);
+    }
+    </style>
+</head>
+<body>
+    <script src="/static/js/resolve.js"></script>
+    <script>
+        // Early MusicPlayer detection
+        if (!window.MusicPlayer) {
+            console.log("Creating early MusicPlayer placeholder");
+            window.MusicPlayer = {
+                playSong: function(indexOrId, songData) {
+                    console.log("Early MusicPlayer playSong with:", songData?.name);
+                    // Store request for later
+                    if (!window.__pendingSongRequests) window.__pendingSongRequests = [];
+                    window.__pendingSongRequests.push({indexOrId, songData});
+                },
+                getState: function() { return null; },
+                setState: function() {},
+                addSongs: function() {},
+                connectPlaylist: function() {}
+            };
+        }
+    </script>
+    <!-- Sidebar Navigation -->
+    <nav class="sidebar">
+        <div class="logo">
+            <a href="/musify/">
+                <img src="static/images/logo.png" alt="Musify Logo">
+                <span>Musify</span>
+            </a>
+        </div>
+        
+        <ul class="nav-menu">
+            <li>
+                <a href="/musify/" class="nav-item {% if request.path == '/musify/' %}active{% endif %}">
+                    <i class="fas fa-home"></i>
+                    <span>Home</span>
+                </a>
+            </li>
+            <li>
+                <a href="/musify/search" class="nav-item {% if '/search' in request.path %}active{% endif %}">
+                    <i class="fas fa-search"></i>
+                    <span>Search</span>
+                </a>
+            </li>
+            <li>
+                <a href="/musify/library" class="nav-item {% if '/library' in request.path %}active{% endif %}">
+                    <i class="fas fa-book"></i>
+                    <span>Your Library</span>
+                </a>
+            </li>
+        </ul>
+        
+        <div class="playlists-section">
+            <div class="section-header">
+                <h3>Playlists</h3>
+                <button class="create-playlist-btn">
+                    <i class="fas fa-plus"></i>
+                </button>
+            </div>
+            
+            <ul class="playlist-menu">
+                {% for playlist in user_playlists %}
+                <li>
+                    <a href="/musify/playlist/{{ playlist.id }}" class="nav-item {% if '/playlist/' + playlist.id|string in request.path %}active{% endif %}">
+                        <i class="fas fa-music"></i>
+                        <span>{{ playlist.name }}</span>
+                    </a>
+                </li>
+                {% endfor %}
+            </ul>
+        </div>
+        
+        {% if current_user.is_authenticated %}
+        <div class="user-section">
+            <a href="/musify/profile" class="user-profile nav-item {% if '/profile' in request.path %}active{% endif %}">
+                <img src="{{ current_user.profile_pic or url_for('static', filename='images/default-user.png') }}" alt="Profile">
+                <span>{{ current_user.username }}</span>
+            </a>
+        </div>
+        {% else %}
+        <div class="auth-section">
+            <a href="/musify/login" class="nav-item {% if '/login' in request.path %}active{% endif %}">
+                <i class="fas fa-sign-in-alt"></i>
+                <span>Login</span>
+            </a>
+            <a href="/musify/register" class="nav-item {% if '/register' in request.path %}active{% endif %}">
+                <i class="fas fa-user-plus"></i>
+                <span>Register</span>
+            </a>
+        </div>
+        {% endif %}
+    </nav>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        {% block content %}
+        <!-- Page content will go here -->
+        {% endblock %}
+    </main>
+
+    <!-- Music player included from separate template -->
+    {% include 'music_player.html' %}
+
+    <!-- JavaScript - IMPORTANT: Order matters! -->
+    <script src="/static/js/music-player.js"></script>
+    <script src="/static/js/page-navigation.js"></script>
+    
+    <!-- Page-specific JavaScript -->
+    {% block additional_js %}{% endblock %}
+    
+    <!-- Debug Toast Notification -->
+
+    <div id="debug-toast" class="debug-toast"></div>
+    <script>
+    // Make it globally available
+    window.showDebugToast = function(message) {
+        const toast = document.getElementById('debug-toast');
+        if (!toast) {
+            console.error("Debug toast element not found");
+            return;
+        }
+        toast.textContent = message;
+        toast.style.display = 'block';
+        setTimeout(() => {
+            toast.style.display = 'none';
+        }, 3000);
+    };
+    </script>
+    <script>
+    // Force show the music player if audio is playing
+    function checkAudioAndShowPlayer() {
+        const audioPlayer = document.getElementById('audio-player');
+        const musicPlayer = document.getElementById('music-player');
+        
+        if (audioPlayer && musicPlayer) {
+            if (!audioPlayer.paused && audioPlayer.src) {
+                console.log("Audio is playing, showing player UI");
+                musicPlayer.classList.add('active');
+                musicPlayer.style.display = 'flex';
+            }
+        }
+    }
+
+    // Check periodically and after DOM content loaded
+    document.addEventListener('DOMContentLoaded', function() {
+        // Check immediately
+        checkAudioAndShowPlayer();
+        
+        // Check every second
+        setInterval(checkAudioAndShowPlayer, 1000);
+    });
+
+    function forceShowMusicPlayer() {
+        const musicPlayer = document.getElementById('music-player');
+        const audioPlayer = document.getElementById('audio-player');
+        
+        if (musicPlayer && audioPlayer) {
+            console.log("Checking player visibility status");
+            
+            // Show the player if audio is playing or has a source
+            if (audioPlayer.src && !audioPlayer.paused) {
+                console.log("Audio is playing, forcing player visibility");
+                musicPlayer.classList.add('active');
+                musicPlayer.style.display = 'flex';
+                musicPlayer.style.opacity = '1';
+                musicPlayer.style.transform = 'translateY(0)';
+                return true;
+            }
+        }
+        return false;
+    }
+
+    // Check on page load and periodically
+    document.addEventListener('DOMContentLoaded', function() {
+        // Initial check
+        forceShowMusicPlayer();
+        
+        // Check every second
+        setInterval(forceShowMusicPlayer, 1000);
+    });
+
+    </script>
+</body>
+</html>
