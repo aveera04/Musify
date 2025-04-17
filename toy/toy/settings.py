@@ -36,10 +36,10 @@ AWS_S3_CUSTOM_DOMAIN = os.getenv('CLOUDFRONT_DOMAIN')
 
 # Storage settingsos
 DEFAULT_FILE_STORAGE = 'storages.backends.s3boto3.S3Boto3Storage'
-STATICFILES_STORAGE = 'storages.backends.s3boto3.S3StaticStorage'
+# STATICFILES_STORAGE = 'storages.backends.s3boto3.S3StaticStorage' # Commented out for local development
 
 # Media URL through CloudFront
-MEDIA_URL = f"https://{os.getenv('CLOUDFRONT_DOMAIN')}/"
+MEDIA_URL = f'https://{os.getenv('CLOUDFRONT_DOMAIN')}/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
 # Performance optimizations
